@@ -47,6 +47,10 @@ func (a *SimpleApp) handleKeyPress(event *tcell.EventKey, focused tview.Primitiv
 		go a.yankURL(focused)
 		return nil
 
+	case 'Y':
+		go a.showURLModal(focused)
+		return nil
+
 	case 'a':
 		if focused == a.searchResults.Flex {
 			track := a.searchResults.GetCurrentTrack()

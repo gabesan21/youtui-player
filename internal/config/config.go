@@ -13,6 +13,7 @@ type Config struct {
 	Theme    ThemeConfig    `toml:"theme"`
 	UI       UIConfig       `toml:"ui"`
 	Playback PlaybackConfig `toml:"playback"`
+	Download DownloadConfig `toml:"download"`
 }
 
 type ThemeConfig struct {
@@ -28,6 +29,10 @@ type PlaybackConfig struct {
 	DefaultMode  string `toml:"default_mode,omitempty"`
 	VideoQuality string `toml:"video_quality,omitempty"`
 	VideoCodec   string `toml:"video_codec,omitempty"`
+}
+
+type DownloadConfig struct {
+	Dir string `toml:"dir,omitempty"`
 }
 
 func GetConfigDir() string {

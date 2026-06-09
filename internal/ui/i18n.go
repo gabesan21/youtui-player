@@ -69,6 +69,7 @@ type Strings struct {
 	Theme        string
 	VideoQuality string
 	VideoCodec   string
+	DownloadDir  string
 	Close        string
 
 	QualityChanged string
@@ -112,8 +113,8 @@ type Strings struct {
 	HelpGlobalText     string
 	HelpIconsText      string
 
-	ConfigText  string
-	EscToClose  string
+	ConfigText string
+	EscToClose string
 
 	URLCopied        string
 	NoTrackSelected  string
@@ -130,6 +131,13 @@ type Strings struct {
 
 	TerminalVideo         string
 	TerminalVideoStarting string
+
+	Downloading      string
+	DownloadComplete string
+	DownloadError    string
+
+	URLModalTitle string
+	URLSaved      string
 
 	warnFailedKillMpv     string
 	errorPause            string
@@ -209,6 +217,7 @@ var translations = map[Language]Strings{
 		Theme:        "Tema",
 		VideoQuality: "Qualidade",
 		VideoCodec:   "Codec",
+		DownloadDir:  "Pasta de download",
 		Close:        "Fechar",
 
 		QualityChanged: "Qualidade alterada para: %s",
@@ -238,18 +247,18 @@ var translations = map[Language]Strings{
 		NoDescription:    "Sem descrição disponível",
 		Page:             "Página",
 
-		CmdSearchBar:   "Digite para buscar (ou cole URL) | [#89b4fa]Enter[-] Buscar | [#89b4fa]Tab[-] Próximo | [#f38ba8]Ctrl+Q[-] Sair | [#cba6f7]Ctrl+C[-] Config",
-		CmdResultsBar:  "[#89b4fa]j/k[-] Nav | [#89b4fa]Enter[-] Tocar | [#a6e3a1]a[-] Add | [#a6e3a1]A[-] Add todos | [#94e2d5]y[-] Copiar URL | [#cba6f7][ ][-] Pág | [#89b4fa]/[-] Buscar | [#f38ba8]Ctrl+Q[-] Sair",
-		CmdPlaylistBar: "[#89b4fa]j/k[-] Nav | [#89b4fa]Enter[-] Tocar | [#f38ba8]d[-] Del | [#cba6f7]J/K[-] Move | [#94e2d5]y[-] Copiar URL | [#fab387]r[-] Repetir | [#94e2d5]h[-] Aleatório | [#f38ba8]Ctrl+Q[-] Sair",
-		CmdPlayerBar:   "[#a6e3a1]Space[-] Pausa | [#89dceb]n/p[-] Next/Prev | [#fab387]h/l[-] ±5s | [#fab387]H/L[-] ±30s | [#f38ba8]s[-] Parar | [#94e2d5]y[-] Copiar URL | [#cba6f7]m[-] Modo | [#f38ba8]Ctrl+Q[-] Sair",
-		CmdDefaultBar:  "[#89b4fa]Tab[-] Navegar entre painéis | [#94e2d5]y[-] Copiar URL | [#f38ba8]Ctrl+Q[-] Sair | [#cba6f7]Ctrl+C[-] Config",
+		CmdSearchBar:   "[#89b4fa]Enter[-] Buscar   [#89b4fa]Tab[-] Próximo   [#cba6f7]Ctrl+C[-] Config   [#f38ba8]Ctrl+Q[-] Sair",
+		CmdResultsBar:  "[#89b4fa]j/k[-] Nav   [#89b4fa]Enter[-] Tocar   [#a6e3a1]a/A[-] Add   [#fab387]Ctrl+D[-] Baixar   [#94e2d5]y/Y[-] URL   [#cba6f7][ ][-] Pág   [#9399b2]?[-] Ajuda",
+		CmdPlaylistBar: "[#89b4fa]j/k[-] Nav   [#89b4fa]Enter[-] Tocar   [#f38ba8]d[-] Del   [#cba6f7]J/K[-] Mover   [#fab387]r[-] Repetir   [#fab387]Ctrl+D[-] Baixar   [#9399b2]?[-] Ajuda",
+		CmdPlayerBar:   "[#a6e3a1]Espaço[-] Pausa   [#89dceb]n/p[-] Próx/Ant   [#fab387]h/l[-] Seek   [#f38ba8]s[-] Parar   [#fab387]Ctrl+D[-] Baixar   [#9399b2]?[-] Ajuda",
+		CmdDefaultBar:  "[#89b4fa]Tab[-] Painéis   [#94e2d5]y/Y[-] URL   [#fab387]Ctrl+D[-] Baixar   [#cba6f7]Ctrl+C[-] Config   [#f38ba8]Ctrl+Q[-] Sair",
 
 		HelpNavigationText: "  Tab         Alternar entre painéis (Busca → Resultados → Playlist → Player)\n  /           Focar na busca\n  ↑/↓  j/k    Navegar nas listas\n  g / G       Ir ao topo / fim da lista\n  ?           Mostrar esta ajuda",
 		HelpSearchText:     "  Digite    Texto para buscar ou cole uma URL do YouTube\n  Enter     Executar busca / tocar URL / importar playlist",
-		HelpResultsText:    "  Enter     Tocar faixa diretamente (sem playlist)\n  a         Adicionar à playlist\n  A         Adicionar todos à playlist\n  y         Copiar URL da faixa\n  [ ]       Navegar entre páginas (anterior/próxima)",
-		HelpPlaylistText:   "  Enter     Tocar faixa da playlist\n  Space     Tocar playlist do início\n  d         Remover item\n  J         Mover item para baixo\n  K         Mover item para cima\n  r         Ciclar repetição (󰑗 → 󰑘 → 󰑖 → 󰑗)\n  h         Toggle shuffle ()",
-		HelpPlayerText:     "  Space     Pause/Play\n  s         Stop\n  n         Próxima música\n  p         Música anterior\n  h / l     Voltar / Avançar 5 segundos\n  H / L     Voltar / Avançar 30 segundos",
-		HelpGlobalText:     "  m         Alternar áudio/vídeo\n  y         Copiar URL (faixa tocando ou selecionada)\n  Ctrl+Q    Sair da aplicação\n  Ctrl+C    Configurações\n  ?         Esta janela de atalhos\n  Esc       Fechar janela/modal",
+		HelpResultsText:    "  Enter     Tocar faixa diretamente (sem playlist)\n  a         Adicionar à playlist\n  A         Adicionar todos à playlist\n  y         Copiar URL da faixa\n  Y         Exibir URL (para copiar com tmux)\n  Ctrl+D    Baixar faixa\n  [ ]       Navegar entre páginas (anterior/próxima)",
+		HelpPlaylistText:   "  Enter     Tocar faixa da playlist\n  Space     Tocar playlist do início\n  d         Remover item\n  J         Mover item para baixo\n  K         Mover item para cima\n  r         Ciclar repetição (󰑗 → 󰑘 → 󰑖 → 󰑗)\n  h         Toggle shuffle ()\n  Y         Exibir URL (para copiar com tmux)\n  Ctrl+D    Baixar faixa",
+		HelpPlayerText:     "  Space     Pause/Play\n  s         Stop\n  n         Próxima música\n  p         Música anterior\n  h / l     Voltar / Avançar 5 segundos\n  H / L     Voltar / Avançar 30 segundos\n  Y         Exibir URL (para copiar com tmux)\n  Ctrl+D    Baixar faixa tocando",
+		HelpGlobalText:     "  m         Alternar áudio/vídeo\n  y         Copiar URL (faixa tocando ou selecionada)\n  Y         Exibir URL em popup (útil no tmux)\n  Ctrl+D    Baixar faixa (respeita qualidade/codec)\n  Ctrl+Q    Sair da aplicação\n  Ctrl+C    Configurações\n  ?         Esta janela de atalhos\n  Esc       Fechar janela/modal",
 		HelpIconsText:      "  󰑗 Sem Repetição  󰑘 Repetir Uma  󰑖 Repetir Todas   Aleatório",
 
 		ConfigText: "⚙️  CONFIGURAÇÕES\n\nEscolha uma opção abaixo para configurar o YouTui.\nUse as setas ←/→ para navegar e Enter para selecionar.\n\nPressione Esc para fechar.",
@@ -270,6 +279,13 @@ var translations = map[Language]Strings{
 
 		TerminalVideo:         "Terminal (vídeo no terminal)",
 		TerminalVideoStarting: "Iniciando vídeo no terminal... (q para voltar)",
+
+		Downloading:      "Baixando: %s...",
+		DownloadComplete: "Download concluído: %s",
+		DownloadError:    "Erro no download: %v",
+
+		URLModalTitle: "URL DA FAIXA",
+		URLSaved:      "URL salva em: %s",
 
 		warnFailedKillMpv:     "falha ao encerrar o processo mpv:",
 		errorPause:            "Erro ao pausar",
@@ -348,6 +364,7 @@ var translations = map[Language]Strings{
 		Theme:        "Theme",
 		VideoQuality: "Quality",
 		VideoCodec:   "Codec",
+		DownloadDir:  "Download folder",
 		Close:        "Close",
 
 		QualityChanged: "Quality changed to: %s",
@@ -377,18 +394,18 @@ var translations = map[Language]Strings{
 		NoDescription:    "No description available",
 		Page:             "Page",
 
-		CmdSearchBar:   "Type to search (or paste URL) | [#89b4fa]Enter[-] Search | [#89b4fa]Tab[-] Next | [#f38ba8]Ctrl+Q[-] Quit | [#cba6f7]Ctrl+C[-] Config",
-		CmdResultsBar:  "[#89b4fa]j/k[-] Nav | [#89b4fa]Enter[-] Play | [#a6e3a1]a[-] Add | [#a6e3a1]A[-] Add all | [#94e2d5]y[-] Copy URL | [#cba6f7][ ][-] Page | [#89b4fa]/[-] Search | [#f38ba8]Ctrl+Q[-] Quit",
-		CmdPlaylistBar: "[#89b4fa]j/k[-] Nav | [#89b4fa]Enter[-] Play | [#f38ba8]d[-] Del | [#cba6f7]J/K[-] Move | [#94e2d5]y[-] Copy URL | [#fab387]r[-] Repeat | [#94e2d5]h[-] Shuffle | [#f38ba8]Ctrl+Q[-] Quit",
-		CmdPlayerBar:   "[#a6e3a1]Space[-] Pause | [#89dceb]n/p[-] Next/Prev | [#fab387]h/l[-] ±5s | [#fab387]H/L[-] ±30s | [#f38ba8]s[-] Stop | [#94e2d5]y[-] Copy URL | [#cba6f7]m[-] Mode | [#f38ba8]Ctrl+Q[-] Quit",
-		CmdDefaultBar:  "[#89b4fa]Tab[-] Navigate panels | [#94e2d5]y[-] Copy URL | [#f38ba8]Ctrl+Q[-] Quit | [#cba6f7]Ctrl+C[-] Config",
+		CmdSearchBar:   "[#89b4fa]Enter[-] Search   [#89b4fa]Tab[-] Next   [#cba6f7]Ctrl+C[-] Settings   [#f38ba8]Ctrl+Q[-] Quit",
+		CmdResultsBar:  "[#89b4fa]j/k[-] Nav   [#89b4fa]Enter[-] Play   [#a6e3a1]a/A[-] Add   [#fab387]Ctrl+D[-] Download   [#94e2d5]y/Y[-] URL   [#cba6f7][ ][-] Page   [#9399b2]?[-] Help",
+		CmdPlaylistBar: "[#89b4fa]j/k[-] Nav   [#89b4fa]Enter[-] Play   [#f38ba8]d[-] Del   [#cba6f7]J/K[-] Move   [#fab387]r[-] Repeat   [#fab387]Ctrl+D[-] Download   [#9399b2]?[-] Help",
+		CmdPlayerBar:   "[#a6e3a1]Space[-] Pause   [#89dceb]n/p[-] Next/Prev   [#fab387]h/l[-] Seek   [#f38ba8]s[-] Stop   [#fab387]Ctrl+D[-] Download   [#9399b2]?[-] Help",
+		CmdDefaultBar:  "[#89b4fa]Tab[-] Panels   [#94e2d5]y/Y[-] URL   [#fab387]Ctrl+D[-] Download   [#cba6f7]Ctrl+C[-] Settings   [#f38ba8]Ctrl+Q[-] Quit",
 
 		HelpNavigationText: "  Tab         Switch panels (Search → Results → Playlist → Player)\n  /           Focus search\n  ↑/↓  j/k    Navigate lists\n  g / G       Go to top / end of list\n  ?           Show this help",
 		HelpSearchText:     "  Type      Text to search or paste a YouTube URL\n  Enter     Search / play URL / import playlist",
-		HelpResultsText:    "  Enter     Play track directly (no playlist)\n  a         Add to playlist\n  A         Add all to playlist\n  y         Copy track URL\n  [ ]       Navigate pages (previous/next)",
-		HelpPlaylistText:   "  Enter     Play track from playlist\n  Space     Play playlist from start\n  d         Remove item\n  J         Move item down\n  K         Move item up\n  r         Cycle repeat (󰑗 → 󰑘 → 󰑖 → 󰑗)\n  h         Toggle shuffle ()",
-		HelpPlayerText:     "  Space     Pause/Play\n  s         Stop\n  n         Next song\n  p         Previous song\n  h / l     Seek -5s / +5s\n  H / L     Seek -30s / +30s",
-		HelpGlobalText:     "  m         Toggle audio/video\n  y         Copy URL (playing or selected track)\n  Ctrl+Q    Quit application\n  Ctrl+C    Settings\n  ?         This shortcuts window\n  Esc       Close window/modal",
+		HelpResultsText:    "  Enter     Play track directly (no playlist)\n  a         Add to playlist\n  A         Add all to playlist\n  y         Copy track URL\n  Y         Show URL (for tmux copy)\n  Ctrl+D    Download track\n  [ ]       Navigate pages (previous/next)",
+		HelpPlaylistText:   "  Enter     Play track from playlist\n  Space     Play playlist from start\n  d         Remove item\n  J         Move item down\n  K         Move item up\n  r         Cycle repeat (󰑗 → 󰑘 → 󰑖 → 󰑗)\n  h         Toggle shuffle ()\n  Y         Show URL (for tmux copy)\n  Ctrl+D    Download track",
+		HelpPlayerText:     "  Space     Pause/Play\n  s         Stop\n  n         Next song\n  p         Previous song\n  h / l     Seek -5s / +5s\n  H / L     Seek -30s / +30s\n  Y         Show URL (for tmux copy)\n  Ctrl+D    Download playing track",
+		HelpGlobalText:     "  m         Toggle audio/video\n  y         Copy URL (playing or selected track)\n  Y         Show URL in popup (useful in tmux)\n  Ctrl+D    Download track (respects quality/codec)\n  Ctrl+Q    Quit application\n  Ctrl+C    Settings\n  ?         This shortcuts window\n  Esc       Close window/modal",
 		HelpIconsText:      "  󰑗 No Repeat  󰑘 Repeat One  󰑖 Repeat All   Shuffle",
 
 		ConfigText: "⚙️  SETTINGS\n\nChoose an option below to configure YouTui.\nUse ←/→ arrows to navigate and Enter to select.\n\nPress Esc to close.",
@@ -409,6 +426,13 @@ var translations = map[Language]Strings{
 
 		TerminalVideo:         "Terminal (video in terminal)",
 		TerminalVideoStarting: "Starting terminal video... (q to return)",
+
+		Downloading:      "Downloading: %s...",
+		DownloadComplete: "Download complete: %s",
+		DownloadError:    "Download error: %v",
+
+		URLModalTitle: "TRACK URL",
+		URLSaved:      "URL saved to: %s",
 
 		warnFailedKillMpv:     "failed to kill mpv process: ",
 		errorPause:            "Error pausing: ",
