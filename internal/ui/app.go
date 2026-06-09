@@ -73,7 +73,8 @@ type SimpleApp struct {
 	commandBar     *tview.TextView
 	modeBadge      *tview.TextView
 	helpView       *HelpView
-	configModal    *tview.Modal
+	configForm     *tview.Form
+	configFlex     tview.Primitive
 
 	tracks         []Track
 	playlistTracks []Track
@@ -93,6 +94,7 @@ type SimpleApp struct {
 	playMode     PlayMode
 	videoQuality string
 	videoCodec   string
+	downloadDir  string
 
 	stopProgress chan bool
 
@@ -104,9 +106,11 @@ type SimpleApp struct {
 	language Language
 	strings  Strings
 
-	inModal     bool
-	prevFocused tview.Primitive
-	version     string
+	inModal        bool
+	configOpen     bool
+	configBuilding bool
+	prevFocused    tview.Primitive
+	version        string
 
 	mu sync.Mutex
 }
@@ -138,6 +142,7 @@ func NewSimpleApp(version string) *SimpleApp {
 		playMode:       parsePlayMode(cfg.Playback.DefaultMode),
 		videoQuality:   normalizeVideoQuality(cfg.Playback.VideoQuality),
 		videoCodec:     normalizeVideoCodec(cfg.Playback.VideoCodec),
+		downloadDir:    cfg.Download.Dir,
 		currentTrack:   -1,
 		theme:          theme,
 		version:        version,

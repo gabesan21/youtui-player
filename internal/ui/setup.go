@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/IvelOt/youtui-player/internal/config"
 	"github.com/IvelOt/youtui-player/internal/search"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -19,7 +19,7 @@ func (a *SimpleApp) setupUI() {
 	a.setupPlayerComponents()
 	a.setupStatusBars()
 	a.setupHelpView()
-	a.setupConfigModal()
+	a.setupConfigView()
 	a.setupLayout()
 	a.setupInputHandlers()
 	a.setupResizeHandler()
@@ -141,35 +141,217 @@ func (a *SimpleApp) setupHelpView() {
 	})
 }
 
-func (a *SimpleApp) setupConfigModal() {
-	a.configModal = tview.NewModal().
-		SetText(a.getConfigText()).
-		AddButtons([]string{
-			a.strings.Language + ": " + GetLanguageName(a.language),
-			a.strings.Theme + ": " + a.theme.Name,
-			a.strings.VideoQuality + ": " + qualityLabel(a.videoQuality),
-			a.strings.VideoCodec + ": " + codecLabel(a.videoCodec),
-			a.strings.Help,
-			a.strings.Close,
-		}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			switch buttonIndex {
-			case 0:
-				a.cycleLanguage()
-			case 1:
-				a.cycleTheme()
-			case 2:
-				a.cycleVideoQuality()
-			case 3:
-				a.cycleVideoCodec()
-			case 4:
-				a.app.SetRoot(a.helpView.Flex, true)
-				a.helpView.FocusContent()
-			case 5:
-				a.inModal = false
-				a.app.SetRoot(a.getMainLayout(), true)
-			}
-		})
+func (a *SimpleApp) setupConfigView() {
+	a.configForm = tview.NewForm()
+	a.configForm.SetBorder(true).SetTitleAlign(tview.AlignCenter)
+	a.buildConfigForm()
+	a.applyThemeToConfigForm()
+
+	// Centered overlay so the form reads as a modal dialog.
+	a.configFlex = tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(a.configForm, 17, 0, true).
+			AddItem(nil, 0, 1, false), 64, 0, true).
+		AddItem(nil, 0, 1, false)
+}
+
+// buildConfigForm (re)populates the settings form. Called on first setup and
+// whenever the language changes (which alters every label).
+func (a *SimpleApp) buildConfigForm() {
+	a.configBuilding = true
+	defer func() { a.configBuilding = false }()
+
+	form := a.configForm
+	form.Clear(true)
+	form.SetTitle(" ⚙  " + a.strings.Config + " ")
+
+	// Language
+	langs := GetAllLanguages()
+	langNames := make([]string, len(langs))
+	curLang := 0
+	for i, l := range langs {
+		langNames[i] = GetLanguageName(l)
+		if l == a.language {
+			curLang = i
+		}
+	}
+	form.AddDropDown(a.strings.Language, langNames, curLang, func(_ string, idx int) {
+		if a.configBuilding || idx < 0 || idx >= len(langs) || langs[idx] == a.language {
+			return
+		}
+		a.applyLanguage(langs[idx])
+		a.refreshTitles()
+		a.rebuildConfigForm()
+		a.setStatus(a.theme.Green, "✓ "+fmt.Sprintf(a.strings.LanguageChanged, GetLanguageName(a.language)))
+	})
+
+	// Theme
+	themes := GetAllThemes()
+	themeNames := make([]string, len(themes))
+	curTheme := 0
+	for i := range themes {
+		themeNames[i] = themes[i].Name
+		if themes[i].ID == a.theme.ID {
+			curTheme = i
+		}
+	}
+	form.AddDropDown(a.strings.Theme, themeNames, curTheme, func(_ string, idx int) {
+		if a.configBuilding || idx < 0 || idx >= len(themes) {
+			return
+		}
+		nt := themes[idx]
+		a.theme = &nt
+		cfg, _ := config.LoadConfig()
+		cfg.Theme.Active = nt.ID
+		cfg.Theme.CustomPath = ""
+		_ = config.SaveConfig(cfg)
+		a.applyTheme()
+		a.setStatus(a.theme.Green, "✓ "+fmt.Sprintf(a.strings.ThemeChanged, a.theme.Name))
+	})
+
+	// Video quality
+	quals := []string{"best", "360", "480", "720", "1080", "tct"}
+	qualNames := make([]string, len(quals))
+	curQ := 0
+	for i, q := range quals {
+		qualNames[i] = qualityLabel(q)
+		if q == a.videoQuality {
+			curQ = i
+		}
+	}
+	form.AddDropDown(a.strings.VideoQuality, qualNames, curQ, func(_ string, idx int) {
+		if a.configBuilding || idx < 0 || idx >= len(quals) {
+			return
+		}
+		a.mu.Lock()
+		a.videoQuality = quals[idx]
+		a.mu.Unlock()
+		cfg, _ := config.LoadConfig()
+		cfg.Playback.VideoQuality = quals[idx]
+		_ = config.SaveConfig(cfg)
+		a.setStatusf(a.theme.Green, "✓ "+a.strings.QualityChanged, qualityLabel(quals[idx]))
+	})
+
+	// Video codec
+	codecs := []string{"", "vp9", "av1"}
+	codecNames := make([]string, len(codecs))
+	curC := 0
+	for i, c := range codecs {
+		codecNames[i] = codecLabel(c)
+		if c == a.videoCodec {
+			curC = i
+		}
+	}
+	form.AddDropDown(a.strings.VideoCodec, codecNames, curC, func(_ string, idx int) {
+		if a.configBuilding || idx < 0 || idx >= len(codecs) {
+			return
+		}
+		a.mu.Lock()
+		a.videoCodec = codecs[idx]
+		a.mu.Unlock()
+		cfg, _ := config.LoadConfig()
+		cfg.Playback.VideoCodec = codecs[idx]
+		_ = config.SaveConfig(cfg)
+		a.setStatusf(a.theme.Green, "✓ "+a.strings.CodecChanged, codecLabel(codecs[idx]))
+	})
+
+	// Download directory
+	form.AddInputField(a.strings.DownloadDir, a.downloadDir, 40, nil, func(text string) {
+		if a.configBuilding {
+			return
+		}
+		a.downloadDir = text
+	})
+
+	form.AddButton(a.strings.Help, func() {
+		a.persistDownloadDir()
+		a.configOpen = false
+		a.app.SetRoot(a.helpView.Flex, true)
+		a.helpView.FocusContent()
+	})
+	form.AddButton(a.strings.Close, a.closeConfig)
+
+	a.styleConfigItems()
+}
+
+// styleConfigItems gives each form field a clear focus indicator. tview.Form
+// re-applies field/label colors on every draw (via SetFormAttributes), so
+// per-item color changes don't stick — instead we toggle a "▶" marker in the
+// label text (which the form leaves untouched). Both states are two cells wide
+// so the layout never shifts.
+func (a *SimpleApp) styleConfigItems() {
+	form := a.configForm
+	for i := 0; i < form.GetFormItemCount(); i++ {
+		item := form.GetFormItem(i)
+		name := strings.TrimSpace(strings.TrimPrefix(item.GetLabel(), "▶"))
+		switch w := item.(type) {
+		case *tview.DropDown:
+			w.SetLabel("  " + name)
+			w.SetFocusFunc(func() { w.SetLabel("▶ " + name) })
+			w.SetBlurFunc(func() { w.SetLabel("  " + name) })
+		case *tview.InputField:
+			w.SetLabel("  " + name)
+			w.SetFocusFunc(func() { w.SetLabel("▶ " + name) })
+			w.SetBlurFunc(func() { w.SetLabel("  " + name) })
+		}
+	}
+}
+
+// rebuildConfigForm re-creates the form (used after a language change) and keeps
+// it on screen with focus.
+func (a *SimpleApp) rebuildConfigForm() {
+	a.buildConfigForm()
+	a.applyThemeToConfigForm()
+	a.app.SetRoot(a.configFlex, true)
+	a.app.SetFocus(a.configForm)
+}
+
+func (a *SimpleApp) applyThemeToConfigForm() {
+	if a.configForm == nil {
+		return
+	}
+	a.configForm.SetBackgroundColor(a.theme.Base)
+	a.configForm.SetBorderColor(a.theme.Blue)
+	a.configForm.SetTitleColor(a.theme.Text)
+	a.configForm.SetLabelColor(a.theme.Subtext1)
+	a.configForm.SetFieldBackgroundColor(a.theme.Surface0)
+	a.configForm.SetFieldTextColor(a.theme.Text)
+	a.configForm.SetButtonBackgroundColor(a.theme.Surface1)
+	a.configForm.SetButtonTextColor(a.theme.Text)
+	a.configForm.SetButtonActivatedStyle(tcell.StyleDefault.
+		Background(a.theme.Blue).Foreground(a.theme.Base))
+}
+
+// closeConfig persists the download directory and returns to the main layout.
+func (a *SimpleApp) closeConfig() {
+	a.persistDownloadDir()
+	a.configOpen = false
+	a.inModal = false
+	a.app.SetRoot(a.getMainLayout(), true)
+	if a.prevFocused != nil {
+		a.app.SetFocus(a.prevFocused)
+	}
+}
+
+func (a *SimpleApp) persistDownloadDir() {
+	cfg, _ := config.LoadConfig()
+	cfg.Download.Dir = strings.TrimSpace(a.downloadDir)
+	_ = config.SaveConfig(cfg)
+}
+
+// refreshTitles re-applies translated titles/labels after a language change.
+func (a *SimpleApp) refreshTitles() {
+	a.searchInput.SetTitle(" " + a.strings.Search + " ")
+	a.searchResults.SetTitle(" " + a.strings.Results + " [0] ")
+	a.playlist.SetTitle(fmt.Sprintf(" %s [%d] ", a.strings.Playlist, len(a.playlistTracks)))
+	a.playerBox.SetTitle(" " + a.strings.Player + " ")
+	a.setupHelpView()
+	a.updateCommandBar()
+	a.updatePlaylistFooter()
+	a.updateModeBadge()
+	a.updatePlayerInfo()
 }
 
 func (a *SimpleApp) setupLayout() {
@@ -243,6 +425,10 @@ func (a *SimpleApp) setupInputHandlers() {
 
 		if event.Key() == tcell.KeyEsc {
 			if a.inModal {
+				if a.configOpen {
+					a.persistDownloadDir()
+					a.configOpen = false
+				}
 				a.inModal = false
 				a.app.SetRoot(a.getMainLayout(), true)
 				if a.prevFocused != nil {
@@ -253,9 +439,29 @@ func (a *SimpleApp) setupInputHandlers() {
 		}
 
 		if event.Key() == tcell.KeyCtrlC {
-			a.inModal = true
 			a.prevFocused = focused
-			a.app.SetRoot(a.configModal, true)
+			a.inModal = true
+			a.configOpen = true
+			a.buildConfigForm()
+			a.applyThemeToConfigForm()
+			a.app.SetRoot(a.configFlex, true)
+			a.app.SetFocus(a.configForm)
+			return nil
+		}
+
+		if event.Key() == tcell.KeyCtrlD {
+			if !a.inModal {
+				go func() {
+					track := a.getContextTrack(focused)
+					if track == nil {
+						a.app.QueueUpdateDraw(func() {
+							a.setStatus(a.theme.Yellow, "⚠ "+a.strings.NoTrackSelected)
+						})
+						return
+					}
+					a.downloadTrack(*track)
+				}()
+			}
 			return nil
 		}
 
@@ -300,61 +506,6 @@ func (a *SimpleApp) setupInputHandlers() {
 	})
 }
 
-
-func (a *SimpleApp) getConfigText() string {
-	return a.strings.ConfigText
-}
-
-func (a *SimpleApp) cycleLanguage() {
-	languages := GetAllLanguages()
-
-	currentIdx := 0
-	for i, lang := range languages {
-		if lang == a.language {
-			currentIdx = i
-			break
-		}
-	}
-
-	nextIdx := (currentIdx + 1) % len(languages)
-	nextLang := languages[nextIdx]
-
-	a.applyLanguage(nextLang)
-	a.refreshUI()
-
-	langName := GetLanguageName(a.language)
-	a.setStatus(a.theme.Green, "✓ "+fmt.Sprintf(a.strings.LanguageChanged, langName))
-}
-
-func (a *SimpleApp) cycleTheme() {
-	themes := GetAllThemes()
-
-	currentIdx := 0
-	for i, theme := range themes {
-		if theme.ID == a.theme.ID {
-			currentIdx = i
-			break
-		}
-	}
-
-	nextIdx := (currentIdx + 1) % len(themes)
-	newTheme := themes[nextIdx]
-	a.theme = &newTheme
-
-	cfg, _ := config.LoadConfig()
-	cfg.Theme.Active = a.theme.ID
-	cfg.Theme.CustomPath = ""
-	err := config.SaveConfig(cfg)
-	if err != nil {
-		fmt.Printf("Erro %s", err)
-	}
-
-	a.applyTheme()
-	a.refreshUI()
-
-	a.setStatus(a.theme.Green, "✓ "+fmt.Sprintf(a.strings.ThemeChanged, a.theme.Name))
-}
-
 func (a *SimpleApp) applyTheme() {
 	tview.Styles.PrimitiveBackgroundColor = a.theme.Base
 	tview.Styles.ContrastBackgroundColor = a.theme.Surface0
@@ -394,39 +545,18 @@ func (a *SimpleApp) applyTheme() {
 
 	a.detailsText.SetBackgroundColor(a.theme.Base)
 	a.detailsText.SetTextColor(a.theme.Text)
+	a.detailsView.SetBorderColor(a.theme.Surface0)
 
-	a.updateCommandBar()
-}
-
-func (a *SimpleApp) refreshUI() {
-	a.searchInput.SetBorder(true).SetTitle(" " + a.strings.Search + " ")
-	a.searchResults.SetTitle(" " + a.strings.Results + " [0] ")
-
-	count := len(a.playlistTracks)
-	a.playlist.SetTitle(fmt.Sprintf(" %s [%d] ", a.strings.Playlist, count))
-	a.playlist.SetTitleColor(a.theme.Subtext0)
-
-	a.playerBox.SetTitle(" " + a.strings.Player + " ")
-
+	// The help view bakes theme colors into its text at construction, so rebuild
+	// it to pick up the new palette in real time.
 	a.setupHelpView()
 
-	a.configModal.SetText(a.getConfigText())
-	a.configModal.ClearButtons().AddButtons([]string{
-		a.strings.Language + ": " + GetLanguageName(a.language),
-		a.strings.Theme + ": " + a.theme.Name,
-		a.strings.VideoQuality + ": " + qualityLabel(a.videoQuality),
-		a.strings.VideoCodec + ": " + codecLabel(a.videoCodec),
-		a.strings.Help,
-		a.strings.Close,
-	})
+	a.applyThemeToConfigForm()
 
 	a.updateCommandBar()
 	a.updatePlaylistFooter()
 	a.updateModeBadge()
 	a.updatePlayerInfo()
-
-	a.inModal = true
-	a.app.SetRoot(a.configModal, true)
 }
 
 func qualityLabel(q string) string {
@@ -448,64 +578,6 @@ func codecLabel(c string) string {
 	default:
 		return "Any"
 	}
-}
-
-func (a *SimpleApp) cycleVideoQuality() {
-	qualities := []string{"best", "360", "480", "720", "1080", "tct"}
-
-	a.mu.Lock()
-	current := a.videoQuality
-	a.mu.Unlock()
-
-	currentIdx := 0
-	for i, q := range qualities {
-		if q == current {
-			currentIdx = i
-			break
-		}
-	}
-
-	next := qualities[(currentIdx+1)%len(qualities)]
-
-	a.mu.Lock()
-	a.videoQuality = next
-	a.mu.Unlock()
-
-	cfg, _ := config.LoadConfig()
-	cfg.Playback.VideoQuality = next
-	_ = config.SaveConfig(cfg)
-
-	a.refreshUI()
-	a.setStatusf(a.theme.Green, "✓ "+a.strings.QualityChanged, qualityLabel(next))
-}
-
-func (a *SimpleApp) cycleVideoCodec() {
-	codecs := []string{"", "vp9", "av1"}
-
-	a.mu.Lock()
-	current := a.videoCodec
-	a.mu.Unlock()
-
-	currentIdx := 0
-	for i, c := range codecs {
-		if c == current {
-			currentIdx = i
-			break
-		}
-	}
-
-	next := codecs[(currentIdx+1)%len(codecs)]
-
-	a.mu.Lock()
-	a.videoCodec = next
-	a.mu.Unlock()
-
-	cfg, _ := config.LoadConfig()
-	cfg.Playback.VideoCodec = next
-	_ = config.SaveConfig(cfg)
-
-	a.refreshUI()
-	a.setStatusf(a.theme.Green, "✓ "+a.strings.CodecChanged, codecLabel(next))
 }
 
 func (a *SimpleApp) initLanguageFromConfig() {
