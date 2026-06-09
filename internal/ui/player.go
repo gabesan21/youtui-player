@@ -45,6 +45,31 @@ func buildYtdlFormat(quality, codec string) string {
 	)
 }
 
+// mpvErrorDetail extracts the most useful single line from mpv/yt-dlp stderr so
+// the cause of a playback failure is visible in the status bar (mpv only reports
+// a bare exit code otherwise). Prefers an "ERROR" line, falling back to the last
+// non-empty line.
+func mpvErrorDetail(stderr string) string {
+	var detail, lastNonEmpty string
+	for _, ln := range strings.Split(stderr, "\n") {
+		ln = strings.TrimSpace(ln)
+		if ln == "" {
+			continue
+		}
+		lastNonEmpty = ln
+		if detail == "" && strings.Contains(ln, "ERROR") {
+			detail = ln
+		}
+	}
+	if detail == "" {
+		detail = lastNonEmpty
+	}
+	if len([]rune(detail)) > 140 {
+		detail = string([]rune(detail)[:140]) + "…"
+	}
+	return detail
+}
+
 func (a *SimpleApp) setStatus(color tcell.Color, msg string) {
 	a.statusBar.SetText("[" + colorTag(color) + "]" + msg)
 }
@@ -88,7 +113,7 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 	codec := a.videoCodec
 	a.mu.Unlock()
 
-	if quality == "tct" {
+	if quality == "tct" && playMode == ModeVideo {
 		a.app.QueueUpdateDraw(func() {
 			a.setStatus(a.theme.Sapphire, a.strings.TerminalVideoStarting)
 		})
@@ -115,7 +140,7 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 	}
 
 	if playMode == ModeAudio {
-		args = append(args, "--no-video", "--ytdl-format=bestaudio")
+		args = append(args, "--no-video", "--ytdl-format=bestaudio/best")
 	} else {
 		args = append(args, "--ytdl-format="+buildYtdlFormat(quality, codec))
 	}
@@ -175,9 +200,14 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 					a.setStatus(a.theme.Red, "❌"+a.strings.youtubeBlocked)
 				})
 			} else {
+				detail := mpvErrorDetail(stderrOutput)
 				a.app.QueueUpdateDraw(func() {
 					a.updatePlayerInfo()
-					a.setStatusf(a.theme.Red, "❌"+a.strings.MpvError, err)
+					if detail != "" {
+						a.setStatusf(a.theme.Red, "❌ "+a.strings.MpvError+" — %s", err, detail)
+					} else {
+						a.setStatusf(a.theme.Red, "❌"+a.strings.MpvError, err)
+					}
 				})
 			}
 			return
@@ -271,7 +301,7 @@ func (a *SimpleApp) playTrackDirect(track Track) {
 	codec := a.videoCodec
 	a.mu.Unlock()
 
-	if quality == "tct" {
+	if quality == "tct" && playMode == ModeVideo {
 		a.app.QueueUpdateDraw(func() {
 			a.setStatus(a.theme.Sapphire, a.strings.TerminalVideoStarting)
 		})
@@ -298,7 +328,7 @@ func (a *SimpleApp) playTrackDirect(track Track) {
 	}
 
 	if playMode == ModeAudio {
-		args = append(args, "--no-video", "--ytdl-format=bestaudio")
+		args = append(args, "--no-video", "--ytdl-format=bestaudio/best")
 	} else {
 		args = append(args, "--ytdl-format="+buildYtdlFormat(quality, codec))
 	}
@@ -354,6 +384,8 @@ func (a *SimpleApp) playTrackDirect(track Track) {
 				stderrOutput := stderrBuf.String()
 				if strings.Contains(stderrOutput, "403") || strings.Contains(stderrOutput, "HTTP error 403") {
 					a.setStatus(a.theme.Red, "❌"+a.strings.youtubeBlocked)
+				} else if detail := mpvErrorDetail(stderrOutput); detail != "" {
+					a.setStatusf(a.theme.Red, "❌ "+a.strings.MpvError+" — %s", err, detail)
 				} else {
 					a.setStatusf(a.theme.Red, "❌ "+a.strings.MpvError, err)
 				}
