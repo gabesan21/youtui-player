@@ -7,7 +7,7 @@ A modern YouTube player for the terminal with TUI interface.
 
 ## What does it do?
 
-YouTui-player is a YouTube player that runs entirely in the terminal, allowing you to search, play music/videos, and manage playlists without leaving the command line. Beautiful interface with inline thumbnails, complete controls, and 4 Catppuccin themes (light + dark).
+YouTui-player is a YouTube player that runs entirely in the terminal, allowing you to search, play and download music/videos, and manage playlists without leaving the command line. Beautiful interface with inline thumbnails, complete controls, and 5 themes (4 Catppuccin variants plus a native terminal theme).
 
 **Key features:**
 
@@ -20,7 +20,10 @@ YouTui-player is a YouTube player that runs entirely in the terminal, allowing y
 - Terminal video mode (renders video as unicode art via `mpv --vo=tct`)
 - Configurable video quality (Best, 360p, 480p, 720p, 1080p, Terminal)
 - Configurable video codec (Any, VP9, AV1)
-- 4 Catppuccin themes (🌻 Latte, 🪴 Frappé, 🌺 Macchiato, 🌿 Mocha)
+- Download tracks (`Ctrl+D`) — MP3 for audio, MP4 for video, with live progress and a configurable folder
+- Show or save a track's URL (`Y`) — handy for copying inside tmux/SSH
+- 4 Catppuccin themes + a native **Terminal** theme that inherits your terminal colors
+- Real-time theme and language switching (no restart)
 - Custom theme support
 - Multilingual (PT-BR and EN)
 
@@ -87,38 +90,67 @@ sudo make install-bin
 
 ## Main Shortcuts
 
-| Key       | Action               |
-| --------- | -------------------- |
-| `/`       | Search               |
-| `Enter`   | Play/Search          |
-| `a`       | Add to playlist      |
-| `d`       | Remove from playlist |
-| `Space`   | Pause/Resume         |
-| `n` / `b` | Next/Previous        |
-| `h`       | Shuffle              |
-| `r`       | Repeat mode          |
-| `Tab`     | Switch panels        |
-| `?`       | Full help            |
-| `Ctrl+Q`  | Quit                 |
-| `Ctrl+C`  | Settings             |
-| `m`       | Toggle audio/video   |
+| Key       | Action                          |
+| --------- | ------------------------------- |
+| `/`       | Search                          |
+| `Enter`   | Play/Search                     |
+| `a` / `A` | Add one / all to playlist       |
+| `d`       | Remove from playlist            |
+| `Space`   | Pause/Resume                    |
+| `n` / `p` | Next/Previous                   |
+| `h` / `l` | Seek -5s / +5s (player)         |
+| `r`       | Repeat mode (playlist)          |
+| `Ctrl+D`  | Download track (MP3/MP4)        |
+| `y` / `Y` | Copy URL / show & save URL      |
+| `Tab`     | Switch panels                   |
+| `?`       | Full help                       |
+| `Ctrl+C`  | Settings                        |
+| `Ctrl+Q`  | Quit                            |
+| `m`       | Toggle audio/video              |
+
+## Downloads
+
+Press `Ctrl+D` to download the currently playing or selected track with `yt-dlp`.
+Progress is shown live in the status bar.
+
+- **Audio mode** → extracted to **MP3** (requires `ffmpeg`)
+- **Video mode** → saved in an **MP4** container, honoring the chosen quality/codec (requires `ffmpeg`)
+
+The download folder is configured in the settings view (`Ctrl+C`). If left empty it
+falls back to `$XDG_DOWNLOAD_DIR`, then `~/Downloads`. The `[download]` section of
+`~/.config/youtui-player/youtui.conf` stores it:
+
+```toml
+[download]
+dir = "~/Music/youtui"
+```
+
+Press `Y` to view a track's full URL in a popup (also saved to
+`~/.local/share/youtui-player/last_url.txt`), useful for copying inside tmux/SSH.
+
+## Settings
+
+Press `Ctrl+C` to open the settings form. It lets you change, in real time:
+
+- Language (PT-BR / EN)
+- Theme
+- Video quality and codec
+- Download folder
+
+Changes are saved to `~/.config/youtui-player/youtui.conf`.
 
 ## Themes
 
-YouTui-player includes 4 Catppuccin themes:
+YouTui-player includes 4 Catppuccin themes plus a native terminal theme:
 
 - 🌻 **Latte** - Elegant light mode
 - 🪴 **Frappé** - Cool dark mode
 - 🌺 **Macchiato** - Warm dark mode
 - 🌿 **Mocha** - Deep dark mode (default)
+- 🖥️ **Terminal** - Inherits your terminal's own colors
 
-**Switch theme:**
-
-1. Press `Ctrl+C`
-2. Select "Theme"
-3. Choose from 4 available themes
-
-Theme is automatically saved to `~/.config/youtui-player/youtui.conf`
+**Switch theme:** press `Ctrl+C`, then pick a theme from the dropdown — it applies
+instantly, no restart needed.
 
 **Custom theme:**
 See [THEMES.md](THEMES.md) for instructions on how to create your own theme.
