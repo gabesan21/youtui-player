@@ -28,9 +28,14 @@ YouTui-player is a YouTube player that runs entirely in the terminal, allowing y
 - Multilingual (PT-BR and EN)
 
 ## Screenshots
+<img width="800" height="427" alt="video_comprimido-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/77eb92c5-c3f7-4227-bb9e-5dca776bb417" />
 
-<img width="1917" height="1045" alt="image" src="https://github.com/user-attachments/assets/94df9e10-d1d5-4065-b668-0ae003def764" />
-<img width="1903" height="1036" alt="image" src="https://github.com/user-attachments/assets/e4c9957a-c14b-4c68-9bf1-7a00e3579900" />
+<img width="1353" height="713" alt="image" src="https://github.com/user-attachments/assets/04e913a0-049f-48a6-91fa-06db82db05b8" />
+
+<img width="1355" height="722" alt="image" src="https://github.com/user-attachments/assets/473d86c3-2abc-4fea-8e34-e0689c79fcea" />
+
+<img width="1350" height="715" alt="image" src="https://github.com/user-attachments/assets/b05949d7-55fc-4d4b-ba5b-f55c2eacab9c" />
+
 
 ## Dependencies
 
