@@ -35,6 +35,7 @@ YouTui-player is a YouTube player that runs entirely in the terminal, allowing y
 - **mpv** - Media player
 - **yt-dlp** - YouTube video extractor
 - **socat** - IPC communication with mpv
+- **ffmpeg** - Audio/video extraction for downloads (MP3 audio, MP4 video)
 - **Nerd Font** (optional) - For beautiful icons
 
 ## Installation
@@ -59,18 +60,18 @@ makepkg -si
 After install, make sure you have the runtime dependencies:
 
 ```bash
-sudo pacman -S mpv yt-dlp socat
+sudo pacman -S mpv yt-dlp socat ffmpeg
 ```
 
 ---
 
 ### Manual (from source)
 
-Requires **Go 1.24+**, **mpv**, **yt-dlp** and **socat**.
+Requires **Go 1.24+**, **mpv**, **yt-dlp**, **socat** and **ffmpeg**.
 
 ```bash
 # Install runtime dependencies (Arch Linux)
-sudo pacman -S mpv yt-dlp socat go
+sudo pacman -S mpv yt-dlp socat ffmpeg go
 
 # Clone and build
 git clone https://github.com/IvelOt/youtui-player

@@ -31,7 +31,7 @@ ifeq ($(UNAME_S),Linux)
 		$(MAKE) install-ubuntu; \
 	else \
 		echo "Distribuicao Linux nao suportada automaticamente"; \
-		echo "Instale manualmente: mpv, yt-dlp, socat"; \
+		echo "Instale manualmente: mpv, yt-dlp, socat, ffmpeg"; \
 		exit 1; \
 	fi
 else ifeq ($(UNAME_S),Darwin)
@@ -46,20 +46,20 @@ endif
 
 install-arch: ## Instala dependencias no Arch Linux
 	@echo "Instalando dependencias no Arch Linux..."
-	sudo pacman -S --needed mpv yt-dlp socat go
+	sudo pacman -S --needed mpv yt-dlp socat ffmpeg go
 	@echo "Dependencias instaladas!"
 
 install-ubuntu: ## Instala dependencias no Ubuntu/Debian
 	@echo "Instalando dependencias no Ubuntu/Debian..."
 	sudo apt update
-	sudo apt install -y mpv socat python3-pip golang
+	sudo apt install -y mpv socat ffmpeg python3-pip golang
 	sudo pip3 install -U yt-dlp || pip3 install --user -U yt-dlp
 	@echo "Dependencias instaladas!"
 
 install-macos: ## Instala dependencias no macOS
 	@echo "Instalando dependencias no macOS..."
 	@which brew > /dev/null || (echo "Homebrew nao encontrado. Instale em: https://brew.sh" && exit 1)
-	brew install mpv yt-dlp socat go
+	brew install mpv yt-dlp socat ffmpeg go
 	@echo "Dependencias instaladas!"
 
 deps: ## Baixa dependencias do Go
@@ -100,6 +100,7 @@ check-deps: ## Verifica dependencias de runtime
 	@which mpv    > /dev/null && echo "OK mpv"    || echo "FALTANDO mpv"
 	@which yt-dlp > /dev/null && echo "OK yt-dlp" || echo "FALTANDO yt-dlp"
 	@which socat  > /dev/null && echo "OK socat"  || echo "FALTANDO socat"
+	@which ffmpeg > /dev/null && echo "OK ffmpeg" || echo "FALTANDO ffmpeg"
 
 version: ## Mostra a versao atual
 	@echo $(VERSION)
