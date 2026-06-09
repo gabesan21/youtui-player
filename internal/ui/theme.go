@@ -193,6 +193,40 @@ var CatppuccinMocha = Theme{
 	Crust:     tcell.NewHexColor(0x11111b), //#11111b
 }
 
+// TerminalTheme inherits the host terminal's colors. Backgrounds and primary
+// text use tcell.ColorDefault (rendered as the terminal default), while accents
+// use the ANSI 16-color palette so they follow the user's terminal theme.
+var TerminalTheme = Theme{
+	Name:      "Terminal",
+	ID:        "terminal",
+	Rosewater: tcell.ColorFuchsia,
+	Flamingo:  tcell.ColorFuchsia,
+	Pink:      tcell.ColorFuchsia,
+	Mauve:     tcell.ColorPurple,
+	Red:       tcell.ColorRed,
+	Maroon:    tcell.ColorRed,
+	Peach:     tcell.ColorYellow,
+	Yellow:    tcell.ColorYellow,
+	Green:     tcell.ColorGreen,
+	Teal:      tcell.ColorTeal,
+	Sky:       tcell.ColorAqua,
+	Sapphire:  tcell.ColorAqua,
+	Blue:      tcell.ColorBlue,
+	Lavender:  tcell.ColorBlue,
+	Text:      tcell.ColorDefault,
+	Subtext1:  tcell.ColorSilver,
+	Subtext0:  tcell.ColorGray,
+	Overlay2:  tcell.ColorGray,
+	Overlay1:  tcell.ColorGray,
+	Overlay0:  tcell.ColorGray,
+	Surface2:  tcell.ColorSilver,
+	Surface1:  tcell.ColorGray,
+	Surface0:  tcell.ColorGray,
+	Base:      tcell.ColorDefault,
+	Mantle:    tcell.ColorDefault,
+	Crust:     tcell.ColorDefault,
+}
+
 func (t *Theme) GetFocusedBorder() tcell.Color {
 	return t.Blue
 }
@@ -239,6 +273,7 @@ func GetAllThemes() []Theme {
 		CatppuccinFrappe,
 		CatppuccinMacchiato,
 		CatppuccinMocha,
+		TerminalTheme,
 	}
 }
 
@@ -316,6 +351,11 @@ func parseHexColor(hex string) tcell.Color {
 }
 
 func colorTag(c tcell.Color) string {
-	// tcell v2 tem .Hex()
+	// ColorDefault (and any invalid color) has no RGB value; emit a reset token
+	// so it renders as the terminal's own foreground/background. This is what
+	// lets the "Terminal" theme inherit the host palette.
+	if c == tcell.ColorDefault || c.Hex() < 0 {
+		return "-"
+	}
 	return fmt.Sprintf("#%06x", c.Hex())
 }
