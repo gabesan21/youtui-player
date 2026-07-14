@@ -4,3 +4,8 @@ youtui-player
 
 # Artifacts
 mpv-shot*.jpg
+
+# Environment
+.env
+.env.*
+!.env.example

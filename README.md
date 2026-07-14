@@ -4,6 +4,7 @@ A modern YouTube player for the terminal with TUI interface.
 
 ![Go Version](https://img.shields.io/badge/go-1.24+-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![AUR version](https://img.shields.io/aur/version/youtui-player)
 
 ## What does it do?
 
@@ -36,6 +37,12 @@ YouTui-player is a YouTube player that runs entirely in the terminal, allowing y
 
 <img width="1350" height="715" alt="image" src="https://github.com/user-attachments/assets/b05949d7-55fc-4d4b-ba5b-f55c2eacab9c" />
 
+
+## Versions
+
+- **Go:** 1.24 (toolchain `go1.24.7`, per `go.mod`)
+- **Key deps:** `rivo/tview`, `gdamore/tcell/v2` v2.7.4, `BurntSushi/toml` v1.5.0 (full list in `go.mod`/`go.sum`)
+- Checked during adoption on 2026-07-14
 
 ## Dependencies
 
@@ -96,14 +103,20 @@ sudo make install-bin
 ## Main Shortcuts
 
 | Key       | Action                          |
-| --------- | ------------------------------- |
+| --------- | -------------------------------- |
 | `/`       | Search                          |
 | `Enter`   | Play/Search                     |
 | `a` / `A` | Add one / all to playlist       |
 | `d`       | Remove from playlist            |
-| `Space`   | Pause/Resume                    |
+| `Space` / `c` | Pause/Resume                 |
+| `s`       | Stop playback                    |
 | `n` / `p` | Next/Previous                   |
 | `h` / `l` | Seek -5s / +5s (player)         |
+| `H` / `L` | Seek -30s / +30s (player)       |
+| `j` / `k` | Move down/up (list)             |
+| `g` / `G` | Jump to first/last result       |
+| `J` / `K` | Move item down/up (playlist)    |
+| `[` / `]` | Previous/next search page       |
 | `r`       | Repeat mode (playlist)          |
 | `Ctrl+D`  | Download track (MP3/MP4)        |
 | `y` / `Y` | Copy URL / show & save URL      |
@@ -132,6 +145,30 @@ dir = "~/Music/youtui"
 
 Press `Y` to view a track's full URL in a popup (also saved to
 `~/.local/share/youtui-player/last_url.txt`), useful for copying inside tmux/SSH.
+
+## Configuration file
+
+All settings live in `~/.config/youtui-player/youtui.conf` (TOML). You can copy
+the example below as a starting point:
+
+```toml
+[theme]
+active = "catppuccin-mocha"
+
+[ui]
+language = "en"
+
+[playback]
+default_mode = "audio"      # "audio" or "video"
+video_quality = "best"      # "best", "360", "480", "720", "1080", "tct"
+video_codec = ""            # "", "vp9", "av1"
+
+[download]
+dir = "~/Music/youtui"
+```
+
+See [config-exemples/youtui.conf.example](config-exemples/youtui.conf.example)
+for a ready-to-copy file, and [THEMES.md](THEMES.md) for the custom theme format.
 
 ## Settings
 
