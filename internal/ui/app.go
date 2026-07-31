@@ -98,7 +98,9 @@ type SimpleApp struct {
 
 	stopProgress chan bool
 
-	skipAutoPlay bool
+	// stopProgressDone is closed by the progress-updater goroutine when it
+	// exits, so cleanup callers can wait for its final update to be queued.
+	stopProgressDone chan struct{}
 
 	thumbCache *ThumbnailCache
 
@@ -195,7 +197,7 @@ func (a *SimpleApp) cleanup() {
 	}
 
 	if a.mpvProcess != nil && a.mpvProcess.Process != nil {
-		if KillError := a.mpvProcess.Process.Kill(); KillError == nil {
+		if KillError := a.mpvProcess.Process.Kill(); KillError != nil {
 			fmt.Printf("Error: %s", KillError)
 		}
 		a.mpvProcess = nil
@@ -243,10 +245,19 @@ func (a *SimpleApp) RestoreState() error {
 
 	a.playlistMode = PlaylistMode(state.PlaylistMode)
 	a.playMode = PlayMode(state.PlayMode)
-	a.currentTrack = state.CurrentTrackIdx
 
 	a.tracks = convertConfigTracksToTracks(state.SearchResults)
 	a.playlistTracks = convertConfigTracksToTracks(state.Playlist)
+
+	// Clamp the restored index to the restored playlist: a corrupt/edited
+	// state file can carry an out-of-range index, which would panic later in
+	// playPrevious (it indexes playlistTracks[prev] unguarded). There is no
+	// live mpv process after a restart, so anything out of range — or the
+	// "direct play" sentinel below -1 — is reset to "not in playlist".
+	a.currentTrack = state.CurrentTrackIdx
+	if a.currentTrack < -1 || a.currentTrack >= len(a.playlistTracks) {
+		a.currentTrack = -1
+	}
 
 	a.mu.Unlock()
 

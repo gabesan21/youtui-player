@@ -185,12 +185,19 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 
 		a.mu.Lock()
 		if a.mpvProcess != expectedCmd {
+			// A newer process replaced this one (manual skip, playlist
+			// selection, stop). This goroutine must not advance — the
+			// process-identity check alone prevents a double-advance.
 			a.mu.Unlock()
 			return
 		}
 
+		// This process is the one that just ended: reconcile state with
+		// reality before deciding what to play next.
+		a.mpvProcess = nil
+		a.isPlaying = false
+
 		if err != nil {
-			a.isPlaying = false
 			a.mu.Unlock()
 
 			stderrOutput := stderrBuf.String()
@@ -210,12 +217,6 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 					}
 				})
 			}
-			return
-		}
-
-		if a.skipAutoPlay {
-			a.skipAutoPlay = false
-			a.mu.Unlock()
 			return
 		}
 
@@ -271,10 +272,6 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 		if shouldPlayNext {
 			go a.playTrackSimple(nextTrack, nextIdx)
 		} else {
-			a.mu.Lock()
-			a.isPlaying = false
-			a.mu.Unlock()
-
 			a.app.QueueUpdateDraw(func() {
 				a.updatePlayerInfo()
 				a.setStatus(a.theme.Yellow, a.strings.PlaylistFinished)
@@ -486,7 +483,6 @@ func (a *SimpleApp) playNext() {
 	if currentTrack < 0 {
 		a.mu.Lock()
 		track := a.playlistTracks[0]
-		a.skipAutoPlay = true
 		a.mu.Unlock()
 
 		a.app.QueueUpdateDraw(func() {
@@ -524,7 +520,6 @@ func (a *SimpleApp) playNext() {
 
 	a.mu.Lock()
 	track := a.playlistTracks[next]
-	a.skipAutoPlay = true
 	a.mu.Unlock()
 
 	a.app.QueueUpdateDraw(func() {
@@ -560,7 +555,6 @@ func (a *SimpleApp) playPrevious() {
 		lastIdx := playlistLen - 1
 		a.mu.Lock()
 		track := a.playlistTracks[lastIdx]
-		a.skipAutoPlay = true
 		a.mu.Unlock()
 
 		a.app.QueueUpdateDraw(func() {
@@ -584,7 +578,6 @@ func (a *SimpleApp) playPrevious() {
 
 	a.mu.Lock()
 	track := a.playlistTracks[prev]
-	a.skipAutoPlay = true
 	a.mu.Unlock()
 
 	a.app.QueueUpdateDraw(func() {
