@@ -1,3 +1,14 @@
 [theme]
 active = "catppuccin-mocha"
+# custom_path = "~/.config/youtui-player/themes/my-theme.toml"
 
+[ui]
+language = "en"
+
+[playback]
+default_mode = "audio"      # "audio" or "video"
+video_quality = "best"      # "best", "360", "480", "720", "1080", "tct"
+video_codec = ""            # "", "vp9", "av1"
+
+[download]
+dir = "~/Music/youtui"
