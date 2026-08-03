@@ -120,7 +120,35 @@ func (a *SimpleApp) handleKeyPress(event *tcell.EventKey, focused tview.Primitiv
 			return nil
 		}
 
-	case 'c', ' ':
+	case 'c':
+		if focused == a.playerBox {
+			go a.togglePause()
+			return nil
+		}
+
+	case ' ':
+		if focused == a.playlist.Flex {
+			// "Play playlist from start" — documented in the help screen.
+			// Deliberately does not gate on isPlaying, so it also recovers
+			// from a restored state where n/p would answer "NothingPlaying".
+			a.mu.Lock()
+			var track Track
+			ok := false
+			if len(a.playlistTracks) > 0 {
+				track = a.playlistTracks[0]
+				ok = true
+			}
+			a.mu.Unlock()
+
+			if !ok {
+				a.app.QueueUpdateDraw(func() {
+					a.setStatus(a.theme.Yellow, "⚠ "+a.strings.PlaylistEmpty)
+				})
+				return nil
+			}
+			go a.playTrackSimple(track, 0)
+			return nil
+		}
 		if focused == a.playerBox {
 			go a.togglePause()
 			return nil

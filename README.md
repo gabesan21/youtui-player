@@ -108,7 +108,7 @@ sudo make install-bin
 | `Enter`   | Play/Search                     |
 | `a` / `A` | Add one / all to playlist       |
 | `d`       | Remove from playlist            |
-| `Space` / `c` | Pause/Resume                 |
+| `Space`   | Pause/Resume (player) / Play from start (playlist) |
 | `s`       | Stop playback                    |
 | `n` / `p` | Next/Previous                   |
 | `h` / `l` | Seek -5s / +5s (player)         |

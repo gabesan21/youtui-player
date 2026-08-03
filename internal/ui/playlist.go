@@ -148,6 +148,7 @@ func (a *SimpleApp) movePlaylistItem(from, to int) {
 }
 
 func (a *SimpleApp) cycleRepeatMode() {
+	a.mu.Lock()
 	switch a.playlistMode {
 	case ModeNormal:
 		a.playlistMode = ModeRepeatOne
@@ -155,25 +156,38 @@ func (a *SimpleApp) cycleRepeatMode() {
 		a.playlistMode = ModeRepeatAll
 	case ModeRepeatAll:
 		a.playlistMode = ModeNormal
+	case ModeShuffle:
+		// Shuffle is mutually exclusive with the repeat modes: cycling
+		// repeat while shuffling returns to normal instead of no-op.
+		a.playlistMode = ModeNormal
 	}
+	newMode := a.playlistMode
+	a.mu.Unlock()
+
+	a.AutoSaveState()
 
 	a.app.QueueUpdateDraw(func() {
 		a.updatePlayerInfo()
 		a.updatePlaylistFooter()
-		a.setStatus(a.theme.Sapphire, "  "+fmt.Sprintf(a.strings.ModeChanged, a.playlistMode.String()))
+		a.setStatus(a.theme.Sapphire, "  "+fmt.Sprintf(a.strings.ModeChanged, newMode.String()))
 	})
 }
 
 func (a *SimpleApp) toggleShuffle() {
+	a.mu.Lock()
 	if a.playlistMode == ModeShuffle {
 		a.playlistMode = ModeNormal
 	} else {
 		a.playlistMode = ModeShuffle
 	}
+	newMode := a.playlistMode
+	a.mu.Unlock()
+
+	a.AutoSaveState()
 
 	a.app.QueueUpdateDraw(func() {
 		a.updatePlayerInfo()
 		a.updatePlaylistFooter()
-		a.setStatus(a.theme.Sapphire, "  "+fmt.Sprintf(a.strings.ModeChanged, a.playlistMode.String()))
+		a.setStatus(a.theme.Sapphire, "  "+fmt.Sprintf(a.strings.ModeChanged, newMode.String()))
 	})
 }

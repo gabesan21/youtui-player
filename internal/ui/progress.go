@@ -19,9 +19,12 @@ func (a *SimpleApp) startProgressUpdater() {
 	}
 	a.stopProgress = make(chan bool)
 	stopChan := a.stopProgress
+	stopDone := make(chan struct{})
+	a.stopProgressDone = stopDone
 	a.mu.Unlock()
 
 	go func() {
+		defer close(stopDone)
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
 		for {
