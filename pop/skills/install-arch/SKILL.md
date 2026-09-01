@@ -13,7 +13,7 @@
    - The `package()` function installs `/usr/bin/youtui-player`, `/usr/share/licenses/youtui-player/LICENSE`, and `/usr/share/doc/youtui-player/README.md`.
 3. Verify the install: `which youtui-player` and `youtui-player --help`.
 4. Alternative local paths (not package-manager based):
-   - `make install-arch` installs runtime dependencies via `pacman` and then runs `make build`.
+   - `make install-arch` installs runtime dependencies via `pacman`; run `make build` separately to compile the binary.
    - `make install-bin` installs the freshly built binary respecting `DESTDIR`/`PREFIX` (default `/usr/local`); use `make uninstall` to remove it.
 
 ## Caveats
