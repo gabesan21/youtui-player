@@ -25,7 +25,7 @@ How does the application control mpv and read playback progress?
 - `internal/ui/progress.go:60` polls duration: `echo '{ "command": ["get_property", "duration"] }' | socat - UNIX-CONNECT:%s ...`.
 - `internal/ui/i18n.go:144-145` and `i18n.go:439-440` / `i18n.go:292-293` contain user-visible strings for `socatNotInstalled` and `socatCmdNotFound`, confirming socat is a hard runtime dependency for IPC.
 - The same pattern appears twice in `player.go` (`playTrackSimple` around line 86 and a second near-identical function around line 289), both using the same socket + socat mechanism.
-- Git history: `git log -S 'socat' -- internal/ui/player.go` shows `2d7ec81 refactor: break in sections`; `git log -S 'input-ipc-server' -- internal/ui/player.go` shows `2d7ec81` as the earliest commit touching the mechanism in the current tree.
+- Git history: `git log -S 'socat' -- internal/ui/player.go` shows `f60bd7a fix: resize visual bug`, `d278a77 fix: shufle mode`, and `2d7ec81 refactor: break in sections`; `git log -S 'input-ipc-server' -- internal/ui/player.go` shows `2d7ec81` as the earliest commit touching the mechanism in the current tree.
 
 ## Inference
 

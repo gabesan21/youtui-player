@@ -29,7 +29,7 @@ Standard anatomy — no deviations to list. The project content is the Go code d
 
 Project-specific rules for agents working on this project:
 
-- **Type and repositories:** declared in the [[AGENTS|project AGENTS]] — `uni-repo` (see [[TYPES|TYPES]]); repository `github.com/gabesan21/youtui-player`, PR branch `main`.
+- **Type and repositories:** declared in the [[AGENTS|project AGENTS]] — `uni-repo`; repository `github.com/gabesan21/youtui-player`, PR branch `main`.
 - **Worktree per task:** yes (default).
 - **Tools and restrictions:** `make build`, `make fmt`, `make vet`, `make test` — format, vet and test before closing any code task.
 - **Tasks critical by default?** no.
@@ -43,3 +43,4 @@ None.
 
 - **2026-09-01:** project imported into the PoP as `uni-repo`; Epoch 1 (Organization) gate active — no content changes until it completes.
 - **2026-09-01:** personal fork, never published to the AUR; old-repo references and AUR flows are removed in Epoch 2 — [[pop/notes/decisions/2026-09-01-personal-fork|note]].
+- **2026-09-01:** Epoch 1 (Organization) completed — imported-project gate lifted; content changes to the project are now allowed.
