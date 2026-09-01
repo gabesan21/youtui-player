@@ -12,8 +12,8 @@
    - The `build()` function sets `CGO_ENABLED=0` and compiles with `-trimpath` and `-ldflags "-X main.Version=$pkgver -s -w"`.
    - The `package()` function installs `/usr/bin/youtui-player`, `/usr/share/licenses/youtui-player/LICENSE`, and `/usr/share/doc/youtui-player/README.md`.
 3. Verify the install: `which youtui-player` and `youtui-player --help`.
-4. Alternative local paths (not package-manager based):
-   - `make install-arch` installs runtime dependencies via `pacman`; run `make build` separately to compile the binary.
+4. Alternative local path (make-based, not `makepkg`):
+   - `make install-arch` installs runtime dependencies **and `go`** via `sudo pacman`; run `make build` separately to compile the binary.
    - `make install-bin` installs the freshly built binary respecting `DESTDIR`/`PREFIX` (default `/usr/local`); use `make uninstall` to remove it.
 
 ## Caveats
