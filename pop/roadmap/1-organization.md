@@ -7,7 +7,10 @@
 ## Recon and forks
 
 - [[pop/notes/decisions/2026-09-01-personal-fork|2026-09-01 personal fork]] — resolved at import: personal fork, never published to AUR; old-repo references and AUR flows are removed in [[pop/roadmap/2-fork-adaptation|Epoch 2]].
-- [ ] RECON NEEDED: historical design decisions (no CI, socat/shell-pipe mpv IPC, yt-dlp subprocess search) — check: git/code evidence captured in task 1.3.1 (upstream author not available for interview).
+- [x] RECON NEEDED: historical design decisions captured in task 1.3.1:
+  - [[pop/notes/decisions/2026-09-01-no-ci-manual-verification|no CI, manual verification]]
+  - [[pop/notes/decisions/2026-09-01-socat-shell-pipe-mpv-ipc|socat/shell-pipe mpv IPC]]
+  - [[pop/notes/decisions/2026-09-01-yt-dlp-subprocess-search|yt-dlp subprocess search]]
 
 ## Phase 1.1 — Project map (DOX)
 
