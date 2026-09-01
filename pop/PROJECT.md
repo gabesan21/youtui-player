@@ -1,6 +1,6 @@
 # youtui-player
 
-- **Status:** planning
+- **Status:** in progress
 - **Priority:** medium
 - **Created on:** 2026-09-01
 - **Roadmap:** [[pop/ROADMAP|Roadmap]]
