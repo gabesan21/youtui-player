@@ -19,7 +19,6 @@
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.1.1-dox-tree-initialization]] | Recursive sweep of the Go code; root DOX rail + child contracts only where a trigger exists; human curation at gate 003. · size: L | 003_human_approval |
 | [[1.1.2-phase-verification]] | Runs the phase suite: DOX contracts consistent with the tree, links and hashes valid. · size: S | 003_human_approval |
 
 ## Phase 1.2 — Operational skills
@@ -29,7 +28,6 @@
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.2.1-build-test-run-skills]] | pop/skills/ entries for build, fmt/vet/test (incl. -short vs live tests), run and local Arch install (makepkg -si), faithful to the Makefile/PKGBUILD. · size: M | 003_human_approval |
 | [[1.2.2-phase-verification]] | Validates each skill by executing its commands read-only where possible. · size: S | 003_human_approval |
 
 ## Phase 1.3 — Notes and research
@@ -39,5 +37,4 @@
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.3.1-decisions-and-references]] | Git/code mining into pop/notes/decisions/ and references/; resolves this epoch's RECON NEEDED item. · size: M | 003_human_approval |
 | [[1.3.2-phase-verification]] | Checks notes against code reality and closes the epoch status. · size: S | 003_human_approval |
