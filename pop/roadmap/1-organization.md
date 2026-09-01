@@ -14,21 +14,19 @@
 
 ## Phase 1.1 — Project map (DOX)
 
-- **Status:** in progress
+- **Status:** completed
 - **Description:** DOX tree initialization over the existing Go code.
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.1.2-phase-verification]] | Runs the phase suite: DOX contracts consistent with the tree, links and hashes valid. · size: S | 003_human_approval |
 
 ## Phase 1.2 — Operational skills
 
-- **Status:** in progress
+- **Status:** completed
 - **Description:** `pop/skills/` entries for build, test, run and local install, faithful to the Makefile and PKGBUILD.
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.2.2-phase-verification]] | Validates each skill by executing its commands read-only where possible. · size: S | 003_human_approval |
 
 ## Phase 1.3 — Notes and research
 
@@ -37,4 +35,3 @@
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| [[1.3.2-phase-verification]] | Checks notes against code reality and closes the epoch status. · size: S | 003_human_approval |
