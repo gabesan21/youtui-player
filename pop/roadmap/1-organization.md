@@ -1,7 +1,7 @@
 # Epoch 1 — Organization
 
 - **Project:** [[pop/PROJECT|youtui-player]] · **Roadmap:** [[pop/ROADMAP|Roadmap]]
-- **Status:** in progress
+- **Status:** completed
 - **Description:** Knowledge harness faithful to the existing code: DOX tree, operational skills, notes and research.
 
 ## Recon and forks
@@ -32,7 +32,7 @@
 
 ## Phase 1.3 — Notes and research
 
-- **Status:** in progress
+- **Status:** completed
 - **Description:** Decisions, references and open research recorded; resolves this epoch's RECON NEEDED item.
 
 | Task | Description (≤1 line) | Status |
