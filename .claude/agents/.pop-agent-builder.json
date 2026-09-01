@@ -1,0 +1,21 @@
+{
+  "files": {
+    "pop-execution-orchestrator.md": "8638c4f2263b766b9587ec1d992d46faa56134ef7a332041b8f6c2281f52eefe",
+    "pop-executor.md": "e49e621591339c002af31f475c82504123a1685ad529b0834b328f7af46b8835",
+    "pop-judge-dredd.md": "ef5b8dac4780384949b82a8ba109a09719e4832b75ae2674aa4729cdc1d44c46",
+    "pop-phase-verifier.md": "77bdd0f8c9ade16de5a73379c2366fe516dbda91e64a9c3f7a0648494e675e51",
+    "pop-planner.md": "94a5fe74f919d0b549197b5ce64881f48d1b87ad0460cc73afab61aa308c427f",
+    "pop-recon.md": "2abfa43af6b4a547016735c6270bbd0ea219b59b57e56df551b534cfd88d0be9"
+  },
+  "generator": "create-agent-claude-code",
+  "profile": "f732b0feb7397f2dab76a92b3e217e354b81ac54b293e58395fd4a94ea566182",
+  "sources": {
+    "pop-execution-orchestrator.md": "52122dbf8bc11985228afbbcee4e832661307311eb0a47bae3e606c76bfd2ccc",
+    "pop-executor.md": "7612d932589c91a5feb4ad8c571a9b4ac70ba64fa6762dff8e475b72492b8e5f",
+    "pop-judge-dredd.md": "3e96200b5fe4cdf5ea98ee7d8ff0b75c2dd995a72fe8f8f3b03b96d5e76cdb93",
+    "pop-phase-verifier.md": "58377c5b65380dd471f8a21aa889e38825c700f74115a6a591db54771c42f402",
+    "pop-planner.md": "7229e04c12da2bcddf96cb75f342503d6e3f8fc726dd8ca81b1ea403067b9d2d",
+    "pop-recon.md": "8a361ae447499b29a5f2aa8e7ab57154ba949d44edfb74d923f555e8f3c24b66"
+  },
+  "version": 1
+}

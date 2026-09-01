@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create OpenCode Agents"
+  short_description: "Generate OpenCode agents with fail-closed validation"
+  default_prompt: "Use $create-agent-opencode to generate and validate a candidate bundle of canonical OpenCode roles."

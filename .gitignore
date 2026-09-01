@@ -9,3 +9,10 @@ mpv-shot*.jpg
 .env
 .env.*
 !.env.example
+
+# unirepo-harness: preserve the standalone anatomy in Git
+!pop/worktrees/
+pop/worktrees/*
+!pop/worktrees/.gitkeep
+# unirepo-harness: scripts' bytecode
+__pycache__/

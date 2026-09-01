@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Codex Agent"
+  short_description: "Generate Codex agents with safe local validation"
+  default_prompt: "Use $create-agent-codex to translate a canonical role into a validated Codex custom agent."
