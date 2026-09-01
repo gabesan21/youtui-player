@@ -6,9 +6,8 @@
 
 ## Recon and forks
 
-- [ ] RECON NEEDED: whether this repo is a fork of IvelOt/youtui-player or the new canonical home (module path and PKGBUILD still point to IvelOt) — check: human decision recorded in task 1.3.1 notes.
-- [ ] RECON NEEDED: historical design decisions (no CI, socat/shell-pipe mpv IPC, yt-dlp subprocess search) — check: interview captured in task 1.3.1.
-- [ ] RECON NEEDED: release/AUR strategy for the gabesan21 repo (PKGBUILD sources the upstream IvelOt tarball) — check: decision in task 1.3.1, reflected in the release skill of 1.2.
+- [[pop/notes/decisions/2026-09-01-personal-fork|2026-09-01 personal fork]] — resolved at import: personal fork, never published to AUR; old-repo references and AUR flows are removed in [[pop/roadmap/2-fork-adaptation|Epoch 2]].
+- [ ] RECON NEEDED: historical design decisions (no CI, socat/shell-pipe mpv IPC, yt-dlp subprocess search) — check: git/code evidence captured in task 1.3.1 (upstream author not available for interview).
 
 ## Phase 1.1 — Project map (DOX)
 
@@ -23,20 +22,19 @@
 ## Phase 1.2 — Operational skills
 
 - **Status:** pending
-- **Description:** `pop/skills/` entries for build, test, run and release, faithful to the Makefile and PKGBUILD.
+- **Description:** `pop/skills/` entries for build, test, run and local install, faithful to the Makefile and PKGBUILD.
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| `1.2.1-build-test-run-skills` | pop/skills/ entries for build, fmt/vet/test (incl. -short vs live tests) and run, faithful to the Makefile. · size: M | not started |
-| `1.2.2-release-aur-skill` | pop/skills/ entry for versioning and AUR packaging (PKGBUILD/.SRCINFO), pending the 1.3.1 decision. · size: M | not started |
-| `1.2.3-phase-verification` | Validates each skill by executing its commands read-only where possible. · size: S | not started |
+| `1.2.1-build-test-run-skills` | pop/skills/ entries for build, fmt/vet/test (incl. -short vs live tests), run and local Arch install (makepkg -si), faithful to the Makefile/PKGBUILD. · size: M | not started |
+| `1.2.2-phase-verification` | Validates each skill by executing its commands read-only where possible. · size: S | not started |
 
 ## Phase 1.3 — Notes and research
 
 - **Status:** pending
-- **Description:** Decisions, references and open research recorded; resolves this epoch's RECON NEEDED items.
+- **Description:** Decisions, references and open research recorded; resolves this epoch's RECON NEEDED item.
 
 | Task | Description (≤1 line) | Status |
 |------|-----------------------|--------|
-| `1.3.1-decisions-and-references` | Interview + git mining into pop/notes/decisions/ and references/; resolves the RECON NEEDED items of this epoch. · size: M | not started |
+| `1.3.1-decisions-and-references` | Git/code mining into pop/notes/decisions/ and references/; resolves this epoch's RECON NEEDED item. · size: M | not started |
 | `1.3.2-phase-verification` | Checks notes against code reality and closes the epoch status. · size: S | not started |

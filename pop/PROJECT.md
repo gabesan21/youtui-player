@@ -11,7 +11,7 @@ A terminal YouTube player in Go — search, play, download and manage playlists 
 
 ## Context
 
-Personal project by Levi Renato (IvelOt), now maintained at `gabesan21/youtui-player` (the module path still reads `github.com/IvelOt/youtui-player`). Recon at import time (2026-09-01):
+Personal fork of Levi Renato's (IvelOt) YouTube TUI, maintained at `gabesan21/youtui-player` for personal use — **never published to the AUR** ([[pop/notes/decisions/2026-09-01-personal-fork|decision]]). Recon at import time (2026-09-01):
 
 - Go 1.24 TUI, ~5.8k LOC, built on tview/tcell.
 - Search via `yt-dlp` subprocess — `internal/search/invidious.go` is a stale filename; there is no Invidious integration.
@@ -19,7 +19,7 @@ Personal project by Levi Renato (IvelOt), now maintained at `gabesan21/youtui-pl
 - Downloads via `yt-dlp` + `ffmpeg` (MP3/MP4).
 - Config in TOML at `~/.config/youtui-player/youtui.conf`; session state as JSON under the XDG state directory.
 - i18n PT-BR/EN; 4 Catppuccin themes + a Terminal theme + custom TOML themes.
-- No CI; AUR packaging via PKGBUILD (version 1.3.2).
+- No CI; `PKGBUILD` inherited from upstream — local Arch install only; AUR publication flows are removed in [[pop/roadmap/2-fork-adaptation|Epoch 2]].
 
 ## Folder structure
 
@@ -42,3 +42,4 @@ None.
 ## Decisions
 
 - **2026-09-01:** project imported into the PoP as `uni-repo`; Epoch 1 (Organization) gate active — no content changes until it completes.
+- **2026-09-01:** personal fork, never published to the AUR; old-repo references and AUR flows are removed in Epoch 2 — [[pop/notes/decisions/2026-09-01-personal-fork|note]].
