@@ -9,7 +9,7 @@ Profile: [[pop/PROJECT|youtui-player]]
 | # | Epoch | Description (≤1 line) | Status |
 |---|-------|-----------------------|--------|
 | 1 | [[pop/roadmap/1-organization|Organization]] | Build the knowledge harness: DOX map, operational skills, decisions/notes and pending research. | completed |
-| 2 | [[pop/roadmap/2-fork-adaptation|Fork adaptation]] | Make the fork fully personal: old-repo references removed, README fork reason, AUR flows gone. | pending |
+| 2 | [[pop/roadmap/2-fork-adaptation|Fork adaptation]] | Make the fork fully personal: old-repo references removed, README fork reason, AUR flows gone. | completed |
 
 **Epoch/phase status:** pending | in progress | completed
 
