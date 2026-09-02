@@ -1,4 +1,4 @@
-module github.com/IvelOt/youtui-player
+module github.com/gabesan21/youtui-player
 
 go 1.24.0
 

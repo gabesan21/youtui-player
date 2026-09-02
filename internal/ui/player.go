@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/IvelOt/youtui-player/internal/config"
+	"github.com/gabesan21/youtui-player/internal/config"
 	"github.com/gdamore/tcell/v2"
 )
 

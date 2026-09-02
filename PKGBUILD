@@ -1,23 +1,24 @@
-# Maintainer: Levi Renato <levirenato at gmail dot com>
+# Maintainer: gabesan21
+# This PKGBUILD is for local installation only: run `makepkg -si` from the
+# repository root. This personal fork is not published on the Arch User Repository.
+
 pkgname=youtui-player
 pkgver=1.3.2
 pkgrel=1
 pkgdesc="YouTube TUI player with playlist, thumbnails and Catppuccin themes"
 arch=('x86_64' 'aarch64')
-url="https://github.com/IvelOt/youtui-player"
+url="https://github.com/gabesan21/youtui-player"
 license=('MIT')
 depends=('mpv' 'yt-dlp' 'socat')
 makedepends=('go')
-source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-b2sums=('cacd78ffe9a0f7946fda13f75ee8d197e592bddf90372b09d369c5cda1d9ded924cac5419dfc11fa4a84cb3bbd4b523cbeff933fd2d154388dea8ee276ad8a79')
 
 prepare() {
-  cd "youtui-player-$pkgver"
+  cd "$startdir"
   go mod download
 }
 
 build() {
-  cd "youtui-player-$pkgver"
+  cd "$startdir"
   export CGO_ENABLED=0
   go build \
     -trimpath \
@@ -26,7 +27,7 @@ build() {
 }
 
 package() {
-  cd "youtui-player-$pkgver"
+  cd "$startdir"
   install -Dm755 "$pkgname" "$pkgdir/usr/bin/$pkgname"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"

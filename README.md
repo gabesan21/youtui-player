@@ -4,7 +4,10 @@ A modern YouTube player for the terminal with TUI interface.
 
 ![Go Version](https://img.shields.io/badge/go-1.24+-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![AUR version](https://img.shields.io/aur/version/youtui-player)
+
+## Fork
+
+`gabesan21/youtui-player` is a personal fork of [`IvelOt/youtui-player`](https://github.com/IvelOt/youtui-player) (Levi Renato). It is maintained for personal use and is **never published to the AUR**; `PKGBUILD` remains only for local `makepkg -si` install.
 
 ## What does it do?
 
@@ -55,19 +58,12 @@ YouTui-player is a YouTube player that runs entirely in the terminal, allowing y
 
 ## Installation
 
-### Arch Linux (AUR) — recommended
+### Arch Linux (local PKGBUILD)
 
-No Go required. The AUR package handles everything automatically.
+The bundled `PKGBUILD` installs from the local checkout. No Go required for the install step itself.
 
 ```bash
-# Using yay
-yay -S youtui-player
-
-# Using paru
-paru -S youtui-player
-
-# Manually
-git clone https://aur.archlinux.org/youtui-player.git
+git clone https://github.com/gabesan21/youtui-player
 cd youtui-player
 makepkg -si
 ```
@@ -89,7 +85,7 @@ Requires **Go 1.24+**, **mpv**, **yt-dlp**, **socat** and **ffmpeg**.
 sudo pacman -S mpv yt-dlp socat ffmpeg go
 
 # Clone and build
-git clone https://github.com/IvelOt/youtui-player
+git clone https://github.com/gabesan21/youtui-player
 cd youtui-player
 make build
 
@@ -218,24 +214,4 @@ make clean
 
 ## License
 
-MIT License
-
-Copyright (c) 2025 IvelOt
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+MIT License — see [LICENSE](LICENSE); original work Copyright (c) 2025 IvelOt (Levi Renato), fork changes by gabesan21.

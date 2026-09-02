@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/IvelOt/youtui-player/internal/ui"
+	"github.com/gabesan21/youtui-player/internal/ui"
 )
 
 var Version = "dev"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/IvelOt/youtui-player/internal/config"
-	"github.com/IvelOt/youtui-player/internal/search"
+	"github.com/gabesan21/youtui-player/internal/config"
+	"github.com/gabesan21/youtui-player/internal/search"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

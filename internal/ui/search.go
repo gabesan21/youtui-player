@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gabesan21/youtui-player/internal/search"
 	"github.com/gdamore/tcell/v2"
-	"github.com/IvelOt/youtui-player/internal/search"
 )
 
 func isYouTubeURL(s string) bool {
