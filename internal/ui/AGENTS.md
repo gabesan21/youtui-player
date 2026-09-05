@@ -6,7 +6,7 @@
   <!-- pop-hash: app.go sha256=52a83a29894889f7d5171fe04a9181d0e822acfa7b3a8537defb9079d7e7b8c8 -->
 - `SimpleApp.mu` guards shared state; lock before accessing `tracks`, `playlistTracks`, `currentTrack` or playback flags from any goroutine.
 - `player_live_test.go` contains a live network test skipped under `-short`; do **not** make it required in `make test` or CI.
-  <!-- pop-hash: player_live_test.go sha256=5bf9a5df9a09c0767db534b47e4f5e1d4eaa046e9fb5d69965cbcadb18418c4d -->
+  <!-- pop-hash: player_live_test.go sha256=69be077d33f9e697f4223e3ef92887001b88c1388d1d4f9f32acd0ad3102dead -->
 - Language changes flow through `applyLanguage()`; keep `internal/search.SetTexts()` in sync when adding new search error strings.
   <!-- pop-hash: setup.go sha256=b1b85702aad6c1f1d8f2d82c2ee961bc68581a022ef4f0197781dd87ed2f0dea -->
 - Theme changes rebuild `HelpView` because it bakes colors at construction time.

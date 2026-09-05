@@ -15,11 +15,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-// ytdlPlayerClientArg forces yt-dlp to request streams from the Android
-// client, which YouTube serves without requiring a PO Token. Without this,
-// the default web/ios clients frequently return HTTP 403 Forbidden.
-const ytdlPlayerClientArg = "--ytdl-raw-options=extractor-args=youtube:player_client=android"
-
 func buildYtdlFormat(quality, codec string) string {
 	var codecFilter string
 	switch codec {
@@ -108,7 +103,6 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 	args := []string{
 		"--no-terminal",
 		"--script-opts=ytdl_hook-ytdl_path=yt-dlp",
-		ytdlPlayerClientArg,
 		fmt.Sprintf("--title=%s", track.Title),
 		fmt.Sprintf("--input-ipc-server=%s", socketPath),
 	}
@@ -129,7 +123,6 @@ func (a *SimpleApp) playTrackSimple(track Track, idx int) {
 			"--vo-tct-256=yes",
 			"--really-quiet",
 			"--script-opts=ytdl_hook-ytdl_path=yt-dlp",
-			ytdlPlayerClientArg,
 			"--ytdl-format=" + buildYtdlFormat("tct", ""),
 			track.URL,
 		}
@@ -295,7 +288,6 @@ func (a *SimpleApp) playTrackDirect(track Track) {
 	args := []string{
 		"--no-terminal",
 		"--script-opts=ytdl_hook-ytdl_path=yt-dlp",
-		ytdlPlayerClientArg,
 		fmt.Sprintf("--title=%s", track.Title),
 		fmt.Sprintf("--input-ipc-server=%s", socketPath),
 	}
@@ -316,7 +308,6 @@ func (a *SimpleApp) playTrackDirect(track Track) {
 			"--vo-tct-256=yes",
 			"--really-quiet",
 			"--script-opts=ytdl_hook-ytdl_path=yt-dlp",
-			ytdlPlayerClientArg,
 			"--ytdl-format=" + buildYtdlFormat("tct", ""),
 			track.URL,
 		}
