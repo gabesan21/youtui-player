@@ -3,7 +3,7 @@ task: D-mpv-exit-status-2
 project: youtui-player
 started: 2026-09-05
 finished: 2026-09-05
-commit: 80c0cafa219f736600e0cccdb648686387147e8b
+commit: 5364f794a43f804a6382a2047f3839022f4fd80b
 pr:
 authorization: direct fix (user command, no-kanban route)
 ---
@@ -19,4 +19,4 @@ authorization: direct fix (user command, no-kanban route)
 
 ## Links
 
-- **Commit:** 80c0cafa219f736600e0cccdb648686387147e8b.
+- **Commit:** 5364f794a43f804a6382a2047f3839022f4fd80b.
