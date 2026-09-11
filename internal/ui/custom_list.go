@@ -119,6 +119,9 @@ func (c *CustomList) AddItem(track Track, index int) {
 		AddItem(thumbPrimitive, 20, 0, false).
 		AddItem(item.info, 0, 1, false)
 	itemFlex.SetBackgroundColor(c.theme.Base)
+	// One empty row on top: breathing room between cards; the flex
+	// background fills it, so selection/playing colors stay continuous.
+	itemFlex.SetBorderPadding(1, 0, 0, 0)
 	item.flex = itemFlex
 
 	c.items = append(c.items, item)
@@ -203,7 +206,8 @@ func (c *CustomList) renderVisibleItems() {
 		availableHeight = 10
 	}
 
-	const itemHeight = 3
+	// 3 content rows + 1 padding row (SetPadding in AddItem).
+	const itemHeight = 4
 
 	itemsPerPage := availableHeight / itemHeight
 
