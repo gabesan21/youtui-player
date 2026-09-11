@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -104,6 +105,12 @@ type SimpleApp struct {
 
 	thumbCache *ThumbnailCache
 
+	// kitty is nil unless the Kitty image sink is active (see kitty.go).
+	// kittyPlayerPath/playerKittyBox feed the "now playing" placement.
+	kitty           *KittyRenderer
+	kittyPlayerPath string
+	playerKittyBox  *tview.Box
+
 	theme    *Theme
 	language Language
 	strings  Strings
@@ -153,6 +160,10 @@ func NewSimpleApp(version string) *SimpleApp {
 		thumbCache:     thumbCache,
 	}
 
+	if kittyAvailable(cfg.UI.ImageMode) {
+		app.kitty = NewKittyRenderer()
+	}
+
 	tview.Styles.PrimitiveBackgroundColor = theme.Base
 	tview.Styles.ContrastBackgroundColor = theme.Surface0
 	tview.Styles.MoreContrastBackgroundColor = theme.Surface1
@@ -186,7 +197,13 @@ func NewSimpleApp(version string) *SimpleApp {
 }
 
 func (a *SimpleApp) Run() error {
-	return a.app.Run()
+	err := a.app.Run()
+	if a.kitty != nil {
+		// After screen teardown: no image may outlive the app. Kitty
+		// placements are terminal state, not tcell cells.
+		a.kitty.DeleteAll(os.Stdout)
+	}
+	return err
 }
 
 func (a *SimpleApp) cleanup() {
@@ -272,15 +289,8 @@ func (a *SimpleApp) RestoreState() error {
 		start, end := a.pagination.GetPageItems()
 		for i, track := range a.tracks[start:end] {
 			a.searchResults.AddItem(track, i)
-			if track.Thumbnail != "" && a.thumbCache != nil {
-				go func(idx int, url string) {
-					img, err := a.thumbCache.GetThumbnailImage(url)
-					if err == nil && img != nil {
-						a.app.QueueUpdateDraw(func() {
-							a.searchResults.SetThumbnail(idx, img)
-						})
-					}
-				}(start+i, track.Thumbnail)
+			if track.Thumbnail != "" {
+				a.fetchListThumbnail(a.searchResults, i, track.Thumbnail)
 			}
 		}
 
@@ -299,16 +309,8 @@ func (a *SimpleApp) RestoreState() error {
 		a.playlist.Clear()
 		for i, track := range a.playlistTracks {
 			a.playlist.AddItem(track, i)
-
-			if track.Thumbnail != "" && a.thumbCache != nil {
-				go func(idx int, url string) {
-					img, err := a.thumbCache.GetThumbnailImage(url)
-					if err == nil && img != nil {
-						a.app.QueueUpdateDraw(func() {
-							a.playlist.SetThumbnail(idx, img)
-						})
-					}
-				}(i, track.Thumbnail)
+			if track.Thumbnail != "" {
+				a.fetchListThumbnail(a.playlist, i, track.Thumbnail)
 			}
 		}
 

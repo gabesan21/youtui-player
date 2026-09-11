@@ -220,15 +220,8 @@ func (a *SimpleApp) displayCurrentPage() {
 		for i, track := range pageItems {
 			a.searchResults.AddItem(track, i)
 
-			if track.Thumbnail != "" && a.thumbCache != nil {
-				go func(idx int, url string) {
-					img, err := a.thumbCache.GetThumbnailImage(url)
-					if err == nil && img != nil {
-						a.app.QueueUpdateDraw(func() {
-							a.searchResults.SetThumbnail(idx, img)
-						})
-					}
-				}(i, track.Thumbnail)
+			if track.Thumbnail != "" {
+				a.fetchListThumbnail(a.searchResults, i, track.Thumbnail)
 			}
 		}
 

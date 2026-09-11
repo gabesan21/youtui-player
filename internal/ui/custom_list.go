@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"sync"
 
@@ -10,7 +11,9 @@ import (
 
 type CustomListItem struct {
 	flex      *tview.Flex
-	thumbnail *tview.Image
+	thumbnail *tview.Image // blocks sink; nil in kitty mode
+	kittyBox  *tview.Box   // blank placeholder owning the cells; nil in blocks mode
+	kittyPath string       // cache path once the kitty thumbnail is loaded
 	info      *tview.TextView
 	index     int
 	track     Track
@@ -23,6 +26,7 @@ type CustomList struct {
 	selectedIndex int
 	playingIndex  int
 	theme         *Theme
+	kittyMode     bool
 	mu            sync.Mutex
 	onSelected    func(index int)
 	visibleStart  int
@@ -31,7 +35,7 @@ type CustomList struct {
 	dirty         bool
 }
 
-func NewCustomList(theme *Theme) *CustomList {
+func NewCustomList(theme *Theme, kittyMode bool) *CustomList {
 	container := tview.NewFlex().SetDirection(tview.FlexRow)
 	container.SetBackgroundColor(theme.Base)
 
@@ -47,6 +51,7 @@ func NewCustomList(theme *Theme) *CustomList {
 		selectedIndex: 0,
 		playingIndex:  -1,
 		theme:         theme,
+		kittyMode:     kittyMode,
 		visibleStart:  0,
 		visibleHeight: 10,
 	}
@@ -82,42 +87,90 @@ func (c *CustomList) AddItem(track Track, index int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	thumb := tview.NewImage().
-		SetColors(tview.TrueColor).
-		SetDithering(tview.DitheringFloydSteinberg)
-	thumb.SetBackgroundColor(c.theme.Base)
+	item := &CustomListItem{
+		info: tview.NewTextView().
+			SetDynamicColors(true).
+			SetText(formatItemInfo(track, index, c.theme)).
+			SetTextAlign(tview.AlignLeft),
+		index: index,
+		track: track,
+	}
+	item.info.SetBackgroundColor(c.theme.Base)
+	item.info.SetTextColor(c.theme.Text)
 
-	info := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(formatItemInfo(track, index, c.theme)).
-		SetTextAlign(tview.AlignLeft)
-	info.SetBackgroundColor(c.theme.Base)
-	info.SetTextColor(c.theme.Text)
+	var thumbPrimitive tview.Primitive
+	if c.kittyMode {
+		// Blank placeholder: the Kitty image lives in a separate terminal
+		// layer, so tcell keeps owning these cells (theme background only).
+		item.kittyBox = tview.NewBox().SetBackgroundColor(c.theme.Base)
+		thumbPrimitive = item.kittyBox
+	} else {
+		item.thumbnail = tview.NewImage().
+			SetColors(tview.TrueColor).
+			SetDithering(tview.DitheringFloydSteinberg)
+		item.thumbnail.SetBackgroundColor(c.theme.Base)
+		thumbPrimitive = item.thumbnail
+	}
 
 	itemFlex := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(thumb, 20, 0, false).
-		AddItem(info, 0, 1, false)
+		AddItem(thumbPrimitive, 20, 0, false).
+		AddItem(item.info, 0, 1, false)
 	itemFlex.SetBackgroundColor(c.theme.Base)
-
-	item := &CustomListItem{
-		flex:      itemFlex,
-		thumbnail: thumb,
-		info:      info,
-		index:     index,
-		track:     track,
-	}
+	item.flex = itemFlex
 
 	c.items = append(c.items, item)
 	c.renderVisibleItems()
 }
 
-func (c *CustomList) SetThumbnail(index int, img image.Image) {
+// SetThumbnail paints the blocks sink. The URL must still match the item's
+// track: a fetch spawned before a page change or list rebuild must not paint
+// over the item that now occupies the index.
+func (c *CustomList) SetThumbnail(index int, url string, img image.Image) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if index >= 0 && index < len(c.items) {
+	if index >= 0 && index < len(c.items) &&
+		c.items[index].thumbnail != nil && c.items[index].track.Thumbnail == url {
 		c.items[index].thumbnail.SetImage(img)
 	}
+}
+
+// SetKittyThumbnail records the cache path backing the item's Kitty
+// placement, with the same stale-URL guard as SetThumbnail. The placement
+// itself is emitted by SimpleApp.syncKittyPlacements on the next draw.
+func (c *CustomList) SetKittyThumbnail(index int, url string, path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if index >= 0 && index < len(c.items) &&
+		c.items[index].kittyBox != nil && c.items[index].track.Thumbnail == url {
+		c.items[index].kittyPath = path
+	}
+}
+
+// kittySinkSpecs returns the desired Kitty placements for the items in the
+// visible window, keyed by prefix+index. Only the visible window contributes:
+// items scrolled out of view keep stale rects and must not be re-placed.
+func (c *CustomList) kittySinkSpecs(prefix string) map[string]kittySinkSpec {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	specs := make(map[string]kittySinkSpec)
+	end := min(c.visibleStart+c.visibleHeight, len(c.items))
+	for i := c.visibleStart; i < end; i++ {
+		item := c.items[i]
+		if item.kittyPath == "" {
+			continue
+		}
+		x, y, w, h := item.kittyBox.GetInnerRect()
+		if w <= 0 || h <= 0 {
+			continue
+		}
+		specs[fmt.Sprintf("%s:%d", prefix, i)] = kittySinkSpec{
+			path: item.kittyPath,
+			rect: kittyRect{x: x, y: y, w: w, h: h},
+		}
+	}
+	return specs
 }
 
 func (c *CustomList) Clear() {
@@ -339,7 +392,12 @@ func (c *CustomList) SetTheme(theme *Theme) {
 	c.container.SetBackgroundColor(theme.Base)
 	for _, item := range c.items {
 		item.flex.SetBackgroundColor(theme.Base)
-		item.thumbnail.SetBackgroundColor(theme.Base)
+		if item.thumbnail != nil {
+			item.thumbnail.SetBackgroundColor(theme.Base)
+		}
+		if item.kittyBox != nil {
+			item.kittyBox.SetBackgroundColor(theme.Base)
+		}
 		item.info.SetBackgroundColor(theme.Base)
 		item.info.SetTextColor(theme.Text)
 	}
