@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
-	_ "image/png"
+	"image/png"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -142,7 +142,8 @@ func (tc *ThumbnailCache) saveImageToCache(img image.Image, cachePath string) er
 }
 
 // GetThumbnailPath returns the on-disk cache file for a thumbnail, downloading
-// and caching it first when needed. The Kitty sink transmits from this path.
+// and caching it first when needed. It is the single source of the cached
+// image; the Kitty sink transmits the PNG derived by GetThumbnailPNGPath.
 func (tc *ThumbnailCache) GetThumbnailPath(url string) (string, error) {
 	return tc.GetThumbnailPathWithContext(context.Background(), url)
 }
@@ -170,6 +171,50 @@ func (tc *ThumbnailCache) GetThumbnailPathWithContext(ctx context.Context, url s
 	return cachePath, nil
 }
 
+// GetThumbnailPNGPath returns a PNG sibling (`<cache>.png`) of the cached
+// JPEG, deriving it when missing or older than the JPEG. The Kitty sink
+// transmits this file: the graphics protocol accepts only RGB/RGBA/PNG
+// payloads, so a JPEG transmission is silently rejected by the terminal.
+// The JPEG cache stays the single source for the blocks sink.
+func (tc *ThumbnailCache) GetThumbnailPNGPath(url string) (string, error) {
+	jpegPath, err := tc.GetThumbnailPath(url)
+	if err != nil {
+		return "", err
+	}
+	pngPath := jpegPath + ".png"
+
+	jpegInfo, err := os.Stat(jpegPath)
+	if err != nil {
+		return "", err
+	}
+	if pngInfo, err := os.Stat(pngPath); err == nil && !pngInfo.ModTime().Before(jpegInfo.ModTime()) {
+		return pngPath, nil
+	}
+
+	src, err := os.Open(jpegPath)
+	if err != nil {
+		return "", err
+	}
+	img, err := jpeg.Decode(src)
+	_ = src.Close()
+	if err != nil {
+		return "", err
+	}
+
+	out, err := os.Create(pngPath)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = out.Close()
+	}()
+	if err := png.Encode(out, img); err != nil {
+		return "", err
+	}
+
+	return pngPath, nil
+}
+
 // fetchListThumbnail delivers a list item thumbnail through the active sink:
 // the Kitty image path when kitty mode is on, the pixelated blocks image
 // otherwise. Delivery is guarded by the item's current thumbnail URL so a
@@ -181,7 +226,7 @@ func (a *SimpleApp) fetchListThumbnail(list *CustomList, index int, url string) 
 
 	go func() {
 		if a.kitty != nil {
-			path, err := a.thumbCache.GetThumbnailPath(url)
+			path, err := a.thumbCache.GetThumbnailPNGPath(url)
 			if err != nil {
 				return
 			}

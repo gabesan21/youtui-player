@@ -8,7 +8,8 @@ import (
 )
 
 // Kitty graphics protocol subset, hand-rolled per the recon decisions:
-// transmit image files from the on-disk cache (a=T, t=f), place them by cell
+// transmit image files from the on-disk cache without displaying them
+// (a=t, t=f — always the derived PNG, never the JPEG), place them by cell
 // size at the cursor position (a=p with c/r), and delete by placement id
 // (a=d, d=p). No Unicode placeholders, so there is no tmux passthrough.
 //
@@ -164,9 +165,11 @@ func (r *KittyRenderer) placeSink(sink *kittySink, spec kittySinkSpec, w io.Writ
 	kittyPlace(w, sink.imageID, sink.placementID, spec.rect)
 }
 
-// Invalidate deletes every placement while keeping the transmitted image
-// data, so the next Sync re-places from scratch. Used on resize and whenever
-// the thumbnail areas leave the visible layout (modals).
+// Invalidate deletes every placement and forgets the transmitted registry, so
+// the next Sync re-transmits and re-places from scratch. Used on resize and
+// whenever the thumbnail areas leave the visible layout (modals). The registry
+// reset is deliberate hardening: real terminals may free image data when
+// placements are deleted, so re-placing without re-transmitting is unsafe.
 func (r *KittyRenderer) Invalidate(w io.Writer) {
 	if !r.anyPlaced {
 		return
@@ -175,6 +178,7 @@ func (r *KittyRenderer) Invalidate(w io.Writer) {
 	for _, sink := range r.sinks {
 		sink.placed = false
 	}
+	r.transmitted = make(map[string]uint32)
 	r.anyPlaced = false
 }
 
@@ -210,12 +214,14 @@ func (r *KittyRenderer) nextPlacementID() uint32 {
 	return r.nextPlaceID
 }
 
-// kittyTransmitFile sends the image from a local path (a=T, t=f); f=100 lets
-// the terminal detect the container format (our cache files are JPEG). Cache
+// kittyTransmitFile transmits the image from a local path without displaying
+// it (a=t, t=f; a=T would also display at the cursor). f=100 makes the
+// terminal read a container format from the file — the sink always passes the
+// derived PNG, since the protocol accepts only RGB/RGBA/PNG payloads. Cache
 // paths are short enough to fit a single unchunked payload.
 func kittyTransmitFile(w io.Writer, id uint32, path string) {
 	payload := base64.StdEncoding.EncodeToString([]byte(path))
-	fmt.Fprintf(w, "%sa=T,t=f,f=100,i=%d,q=2;%s%s", kittyAPCStart, id, payload, kittyAPCEnd)
+	fmt.Fprintf(w, "%sa=t,t=f,f=100,i=%d,q=2;%s%s", kittyAPCStart, id, payload, kittyAPCEnd)
 }
 
 // kittyPlace anchors the placement at the cursor, so it first emits a CUP

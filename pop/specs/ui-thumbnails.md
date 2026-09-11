@@ -7,7 +7,7 @@ status: active
 implementation: implemented
 origin: "M-1.1-kitty-thumbnails"
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-11
 supersedes: []
 superseded_by:
 ---
@@ -34,7 +34,7 @@ How the TUI renders track thumbnails given terminal capability and user preferen
 
 ## Interfaces
 
-- **Input:** `[ui] image_mode` TOML key — `"auto" | "kitty" | "blocks"`, default `"auto"`; thumbnail source files from the existing on-disk cache.
+- **Input:** `[ui] image_mode` TOML key — `"auto" | "kitty" | "blocks"`, default `"auto"`; thumbnail source files from the existing on-disk cache. The kitty sink transmits a PNG derived next to each cached JPEG (`<cache>.jpg.png` via `GetThumbnailPNGPath`) — the Kitty protocol accepts only RGB/RGBA/PNG payloads, not JPEG; the JPEG cache remains the single source for the blocks sink.
 - **Output:** real images (Kitty placements by cell coordinates) or pixelated blocks, per mode selection.
 - **Compatibility:** existing configs without `image_mode` behave as `auto`; non-Kitty terminals are unaffected.
 

@@ -8,7 +8,7 @@ func (a *SimpleApp) updateThumbnail(thumbnailURL string) {
 		}
 
 		go func() {
-			path, err := a.thumbCache.GetThumbnailPath(thumbnailURL)
+			path, err := a.thumbCache.GetThumbnailPNGPath(thumbnailURL)
 			if err != nil {
 				return
 			}

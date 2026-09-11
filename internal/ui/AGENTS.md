@@ -13,7 +13,7 @@
 - Do **not** add direct database, network or filesystem I/O in event handlers; delegate to `internal/search` or `internal/config`.
 - Thumbnail fetches run in background goroutines and must queue UI updates through `app.QueueUpdateDraw()`.
 - Thumbnail delivery goes through `fetchListThumbnail` (`thumbnail.go`) and the URL-guarded `SetThumbnail`/`SetKittyThumbnail` setters; any new fetch call site must keep the stale-page URL guard.
-- Kitty sink (`kitty.go`): APC escapes are emitted only from the tview main loop (`SetAfterDrawFunc` sync, `SetBeforeDrawFunc` resize invalidation, queued updates) or after `Run()` returns — never from background goroutines. Every placement needs a matching delete on scroll/page/resize/modal/exit; blank placeholder boxes own the covered cells so tcell keeps painting them.
+- Kitty sink (`kitty.go`): APC escapes are emitted only from the tview main loop (`SetAfterDrawFunc` sync, `SetBeforeDrawFunc` resize invalidation, queued updates) or after `Run()` returns — never from background goroutines. Transmission sends the PNG derived by `GetThumbnailPNGPath` (`a=t`, transmit-only), never the cached JPEG — the protocol accepts RGB/RGBA/PNG only. Every placement needs a matching delete on scroll/page/resize/modal/exit; blank placeholder boxes own the covered cells so tcell keeps painting them.
 - `CustomList` indexes are local to the current page; account for `pagination.GetPageItems()` offsets when mapping to `tracks`.
 - Do **not** import `internal/ui/components/` into the root UI files without updating this contract; components are not yet covered by a child contract.
 - State restoration happens asynchronously after `NewSimpleApp()` returns; do **not** assume the playlist is populated during construction.
