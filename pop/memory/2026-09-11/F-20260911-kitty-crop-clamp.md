@@ -12,7 +12,7 @@ authorization: F-20260911-kitty-crop-clamp: direct-fix triage (rule 13)
 
 - **Delivery:** Kitty thumbnails keep aspect (centered source-crop placement, cell pixel size via TIOCGWINSZ) and are clipped to their owning panel (rect intersection; fully clipped rows place nothing).
 - **Verification:** `make build`/`make fmt`/`make vet` green; no tests per workflow; empirical Kitty validation remains the human's.
-- **Contract impact:** specs: [[pop/specs/ui-thumbnails|ui-thumbnails]] Output + invariants updated · DOX: `internal/ui/AGENTS.md` kitty rule updated, hashes refreshed.
+- **Contract impact:** specs: [[pop/specs/ui-thumbnails|ui-thumbnails]] updated · DOX: `internal/ui/AGENTS.md` kitty rule updated.
 
 ## Entries
 

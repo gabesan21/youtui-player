@@ -5,7 +5,7 @@ entry: 01-aspect-source-crop
 
 # Aspect-preserving source-crop placement
 
-Placement with `c/r` alone stretches the image into the cell rect. Kitty placement keys `x,y,w,h` select a source pixel region scaled into `c×r`, so the sink now computes the largest centered source rect matching the target pixel aspect — the terminal cell size comes from TIOCGWINSZ (`golang.org/x/sys/unix`, promoted from indirect to direct dep, same version), falling back to 1:2 cells. Source dims flow from the PNG derivation (`GetThumbnailPNG` returns path+dims). Derived PNG files are unchanged: no re-encoding per aspect.
+Placement with `c/r` alone stretches the image into the cell rect. Kitty placement keys `x,y,w,h` select a source region scaled into `c×r`, so the sink computes the largest centered source rect matching the target aspect — cell size from TIOCGWINSZ (`golang.org/x/sys/unix`, promoted to direct dep), fallback 1:2 cells. Source dims flow from the PNG derivation (`GetThumbnailPNG` returns path+dims). Derived PNG files are unchanged: no re-encoding per aspect.
 
 ## Evidence
 
