@@ -206,8 +206,8 @@ func (c *CustomList) renderVisibleItems() {
 		availableHeight = 10
 	}
 
-	// 3 content rows + 1 padding row (SetPadding in AddItem).
-	const itemHeight = 4
+	// 5 content rows + 1 padding row (SetBorderPadding in AddItem).
+	const itemHeight = 6
 
 	itemsPerPage := availableHeight / itemHeight
 
