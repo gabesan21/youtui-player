@@ -14,6 +14,8 @@ type CustomListItem struct {
 	thumbnail *tview.Image // blocks sink; nil in kitty mode
 	kittyBox  *tview.Box   // blank placeholder owning the cells; nil in blocks mode
 	kittyPath string       // cache path once the kitty thumbnail is loaded
+	kittySrcW int          // source pixel dimensions of the kitty image
+	kittySrcH int
 	info      *tview.TextView
 	index     int
 	track     Track
@@ -135,24 +137,33 @@ func (c *CustomList) SetThumbnail(index int, url string, img image.Image) {
 	}
 }
 
-// SetKittyThumbnail records the cache path backing the item's Kitty
-// placement, with the same stale-URL guard as SetThumbnail. The placement
-// itself is emitted by SimpleApp.syncKittyPlacements on the next draw.
-func (c *CustomList) SetKittyThumbnail(index int, url string, path string) {
+// SetKittyThumbnail records the cache path and source pixel dimensions
+// backing the item's Kitty placement, with the same stale-URL guard as
+// SetThumbnail. The placement itself is emitted by
+// SimpleApp.syncKittyPlacements on the next draw.
+func (c *CustomList) SetKittyThumbnail(index int, url string, path string, srcW, srcH int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if index >= 0 && index < len(c.items) &&
 		c.items[index].kittyBox != nil && c.items[index].track.Thumbnail == url {
 		c.items[index].kittyPath = path
+		c.items[index].kittySrcW = srcW
+		c.items[index].kittySrcH = srcH
 	}
 }
 
 // kittySinkSpecs returns the desired Kitty placements for the items in the
 // visible window, keyed by prefix+index. Only the visible window contributes:
 // items scrolled out of view keep stale rects and must not be re-placed.
-func (c *CustomList) kittySinkSpecs(prefix string) map[string]kittySinkSpec {
+// Every target rect is clamped to the container's inner rect — kitty
+// placements ignore tview's cell clipping, so rows partially visible at the
+// panel edge would otherwise paint over neighboring panels.
+func (c *CustomList) kittySinkSpecs(prefix string, cell kittyCellSize) map[string]kittySinkSpec {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	cx, cy, cw, ch := c.container.GetInnerRect()
+	clip := kittyRect{x: cx, y: cy, w: cw, h: ch}
 
 	specs := make(map[string]kittySinkSpec)
 	end := min(c.visibleStart+c.visibleHeight, len(c.items))
@@ -162,13 +173,13 @@ func (c *CustomList) kittySinkSpecs(prefix string) map[string]kittySinkSpec {
 			continue
 		}
 		x, y, w, h := item.kittyBox.GetInnerRect()
-		if w <= 0 || h <= 0 {
+		spec, ok := newKittySinkSpec(item.kittyPath,
+			kittyRect{x: x, y: y, w: w, h: h},
+			item.kittySrcW, item.kittySrcH, cell, clip)
+		if !ok {
 			continue
 		}
-		specs[fmt.Sprintf("%s:%d", prefix, i)] = kittySinkSpec{
-			path: item.kittyPath,
-			rect: kittyRect{x: x, y: y, w: w, h: h},
-		}
+		specs[fmt.Sprintf("%s:%d", prefix, i)] = spec
 	}
 	return specs
 }

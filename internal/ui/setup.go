@@ -418,8 +418,10 @@ func (a *SimpleApp) setupResizeHandler() {
 		if w != lastW || h != lastH {
 			lastW, lastH = w, h
 			if a.kitty != nil {
-				// Reflow moves placements out from under their cells; drop
-				// them all and let the next sync re-place at fresh rects.
+				// Reflow moves placements out from under their cells and the
+				// cell pixel ratio may change: re-measure it, drop all
+				// placements, and let the next sync re-place at fresh rects.
+				a.kitty.RefreshCellSize()
 				a.kitty.Invalidate(os.Stdout)
 			}
 			a.searchResults.MarkDirty()

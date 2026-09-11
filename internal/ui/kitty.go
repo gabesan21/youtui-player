@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"golang.org/x/sys/unix"
 )
 
 // Kitty graphics protocol subset, hand-rolled per the recon decisions:
 // transmit image files from the on-disk cache without displaying them
-// (a=t, t=f — always the derived PNG, never the JPEG), place them by cell
-// size at the cursor position (a=p with c/r), and delete by placement id
-// (a=d, d=p). No Unicode placeholders, so there is no tmux passthrough.
+// (a=t, t=f — always the derived PNG, never the JPEG), place a source pixel
+// crop by cell size at the cursor position (a=p with x/y/w/h + c/r), and
+// delete by placement id (a=d, d=p). No Unicode placeholders, so there is no
+// tmux passthrough.
 //
 // All KittyRenderer methods and emitters MUST be called from the tview main
 // loop (SetAfterDrawFunc / SetBeforeDrawFunc / QueueUpdateDraw callbacks) or
@@ -61,18 +64,22 @@ func (a *SimpleApp) syncKittyPlacements() {
 	}
 
 	desired := make(map[string]kittySinkSpec)
-	if a.kittyPlayerPath != "" && a.playerKittyBox != nil {
-		if x, y, w, h := a.playerKittyBox.GetInnerRect(); w > 0 && h > 0 {
-			desired["player"] = kittySinkSpec{
-				path: a.kittyPlayerPath,
-				rect: kittyRect{x: x, y: y, w: w, h: h},
-			}
+	if a.kittyPlayerPath != "" && a.playerKittyBox != nil && a.playerBox != nil {
+		// Clamp to the player box interior: kitty placements ignore tview's
+		// cell clipping and would otherwise paint over neighboring panels.
+		x, y, w, h := a.playerKittyBox.GetInnerRect()
+		cx, cy, cw, ch := a.playerBox.GetInnerRect()
+		if spec, ok := newKittySinkSpec(a.kittyPlayerPath,
+			kittyRect{x: x, y: y, w: w, h: h},
+			a.kittyPlayerSrcW, a.kittyPlayerSrcH,
+			a.kitty.cell, kittyRect{x: cx, y: cy, w: cw, h: ch}); ok {
+			desired["player"] = spec
 		}
 	}
-	for key, spec := range a.searchResults.kittySinkSpecs("search") {
+	for key, spec := range a.searchResults.kittySinkSpecs("search", a.kitty.cell) {
 		desired[key] = spec
 	}
-	for key, spec := range a.playlist.kittySinkSpecs("playlist") {
+	for key, spec := range a.playlist.kittySinkSpecs("playlist", a.kitty.cell) {
 		desired[key] = spec
 	}
 
@@ -83,11 +90,87 @@ type kittyRect struct {
 	x, y, w, h int
 }
 
+// intersect returns the overlap of two rects, or the zero rect when disjoint.
+func (r kittyRect) intersect(o kittyRect) kittyRect {
+	x0 := max(r.x, o.x)
+	y0 := max(r.y, o.y)
+	x1 := min(r.x+r.w, o.x+o.w)
+	y1 := min(r.y+r.h, o.y+o.h)
+	if x1 <= x0 || y1 <= y0 {
+		return kittyRect{}
+	}
+	return kittyRect{x: x0, y: y0, w: x1 - x0, h: y1 - y0}
+}
+
 // kittySinkSpec is the desired state of one placement slot (a list row or the
-// player box) for the current frame.
+// player box) for the current frame: the (clamped) target cell rect and the
+// source pixel crop to display in it.
 type kittySinkSpec struct {
 	path string
 	rect kittyRect
+	src  kittyRect
+}
+
+// kittyCellSize is the terminal cell geometry in pixels; only the w:h ratio
+// feeds the aspect-correct source crop (the clamp remap works in cell units).
+type kittyCellSize struct {
+	w, h int
+}
+
+// measureKittyCellSize reads TIOCGWINSZ on stdout. When the ioctl fails or
+// the terminal reports no pixel geometry, it falls back to the common 1:2
+// cell aspect (w:h).
+func measureKittyCellSize() kittyCellSize {
+	ws, err := unix.IoctlGetWinsize(int(os.Stdout.Fd()), unix.TIOCGWINSZ)
+	if err == nil && ws.Xpixel > 0 && ws.Ypixel > 0 && ws.Col > 0 && ws.Row > 0 {
+		return kittyCellSize{w: int(ws.Xpixel / ws.Col), h: int(ws.Ypixel / ws.Row)}
+	}
+	return kittyCellSize{w: 1, h: 2}
+}
+
+// newKittySinkSpec builds the placement for one sink. The source image is
+// center-cropped to the exact aspect of the target pixel rect (no stretch);
+// the target is then clamped to the visible canvas of its owning panel, and
+// the clamped rect is mapped back into the source crop proportionally, so a
+// partially visible row shows the matching partial image — exactly what
+// tcell's cell clipping does for the blocks sink. ok=false means the sink is
+// fully clipped (or not laid out yet) and contributes nothing this frame, so
+// Sync deletes any stale placement.
+func newKittySinkSpec(path string, target kittyRect, srcW, srcH int, cell kittyCellSize, clip kittyRect) (kittySinkSpec, bool) {
+	if target.w <= 0 || target.h <= 0 || srcW <= 0 || srcH <= 0 {
+		return kittySinkSpec{}, false
+	}
+
+	// Center-crop the source to the aspect of the target pixel rect,
+	// comparing aspects in integer cross-products (no floats).
+	targetW := target.w * cell.w
+	targetH := target.h * cell.h
+	crop := kittyRect{w: srcW, h: srcH}
+	if srcW*targetH > srcH*targetW {
+		// Source wider than the target: crop the sides.
+		crop.w = srcH * targetW / targetH
+		crop.x = (srcW - crop.w) / 2
+	} else {
+		// Source taller than the target: crop top and bottom.
+		crop.h = srcW * targetH / targetW
+		crop.y = (srcH - crop.h) / 2
+	}
+
+	visible := target.intersect(clip)
+	if visible.w <= 0 || visible.h <= 0 {
+		return kittySinkSpec{}, false
+	}
+
+	if visible != target {
+		// Offsets scale with the crop extent before it shrinks — the cell
+		// pixel size cancels out of the proportional mapping.
+		crop.x += (visible.x - target.x) * crop.w / target.w
+		crop.y += (visible.y - target.y) * crop.h / target.h
+		crop.w = max(visible.w*crop.w/target.w, 1)
+		crop.h = max(visible.h*crop.h/target.h, 1)
+	}
+
+	return kittySinkSpec{path: path, rect: visible, src: crop}, true
 }
 
 type kittySink struct {
@@ -102,16 +185,25 @@ type kittySink struct {
 type KittyRenderer struct {
 	sinks       map[string]*kittySink
 	transmitted map[string]uint32 // cache file path -> transmitted image id
+	cell        kittyCellSize
 	nextImageID uint32
 	nextPlaceID uint32
 	anyPlaced   bool
 }
 
 func NewKittyRenderer() *KittyRenderer {
-	return &KittyRenderer{
+	r := &KittyRenderer{
 		sinks:       make(map[string]*kittySink),
 		transmitted: make(map[string]uint32),
 	}
+	r.RefreshCellSize()
+	return r
+}
+
+// RefreshCellSize re-measures the terminal cell geometry; call it on resize,
+// before Invalidate, so re-placed crops use the new cell pixel ratio.
+func (r *KittyRenderer) RefreshCellSize() {
+	r.cell = measureKittyCellSize()
 }
 
 // Sync diffs the desired placements against the live ones: gone sinks are
@@ -162,7 +254,7 @@ func (r *KittyRenderer) placeSink(sink *kittySink, spec kittySinkSpec, w io.Writ
 		sink.placementID = r.nextPlacementID()
 		sink.placed = true
 	}
-	kittyPlace(w, sink.imageID, sink.placementID, spec.rect)
+	kittyPlace(w, sink.imageID, sink.placementID, spec)
 }
 
 // Invalidate deletes every placement and forgets the transmitted registry, so
@@ -226,11 +318,15 @@ func kittyTransmitFile(w io.Writer, id uint32, path string) {
 
 // kittyPlace anchors the placement at the cursor, so it first emits a CUP
 // (1-based) to the target cell; C=1 keeps the cursor unmoved for tcell, which
-// repositions it during the flush that follows afterDraw anyway.
-func kittyPlace(w io.Writer, imageID, placementID uint32, rect kittyRect) {
-	fmt.Fprintf(w, "\x1b[%d;%dH", rect.y+1, rect.x+1)
-	fmt.Fprintf(w, "%sa=p,i=%d,p=%d,c=%d,r=%d,z=%d,C=1,q=2;%s",
-		kittyAPCStart, imageID, placementID, rect.w, rect.h, kittyZIndexBelowText, kittyAPCEnd)
+// repositions it during the flush that follows afterDraw anyway. The source
+// keys x/y/w/h select the pixel region of the transmitted image that is
+// scaled into the c×r target cells.
+func kittyPlace(w io.Writer, imageID, placementID uint32, spec kittySinkSpec) {
+	fmt.Fprintf(w, "\x1b[%d;%dH", spec.rect.y+1, spec.rect.x+1)
+	fmt.Fprintf(w, "%sa=p,i=%d,p=%d,x=%d,y=%d,w=%d,h=%d,c=%d,r=%d,z=%d,C=1,q=2;%s",
+		kittyAPCStart, imageID, placementID,
+		spec.src.x, spec.src.y, spec.src.w, spec.src.h,
+		spec.rect.w, spec.rect.h, kittyZIndexBelowText, kittyAPCEnd)
 }
 
 func kittyDeletePlacement(w io.Writer, imageID, placementID uint32) {

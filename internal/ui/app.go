@@ -106,9 +106,12 @@ type SimpleApp struct {
 	thumbCache *ThumbnailCache
 
 	// kitty is nil unless the Kitty image sink is active (see kitty.go).
-	// kittyPlayerPath/playerKittyBox feed the "now playing" placement.
+	// kittyPlayerPath/playerKittyBox plus the source dimensions feed the
+	// "now playing" placement.
 	kitty           *KittyRenderer
 	kittyPlayerPath string
+	kittyPlayerSrcW int
+	kittyPlayerSrcH int
 	playerKittyBox  *tview.Box
 
 	theme    *Theme

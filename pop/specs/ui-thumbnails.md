@@ -30,12 +30,12 @@ How the TUI renders track thumbnails given terminal capability and user preferen
 - The blocks rendering path always works and is always the fallback; Kitty support never removes or degrades it.
 - No Kitty escape sequences are emitted when the blocks mode is selected.
 - Kitty image placements are terminal state owned by the app: every placement has a matching delete on any layout-affecting event and on exit.
-- No new third-party dependencies for image rendering.
+- No new third-party dependencies for image rendering, beyond `golang.org/x/sys` (already an indirect tcell dependency, promoted to direct for the `TIOCGWINSZ` cell-geometry query).
 
 ## Interfaces
 
-- **Input:** `[ui] image_mode` TOML key — `"auto" | "kitty" | "blocks"`, default `"auto"`; thumbnail source files from the existing on-disk cache. The kitty sink transmits a PNG derived next to each cached JPEG (`<cache>.jpg.png` via `GetThumbnailPNGPath`) — the Kitty protocol accepts only RGB/RGBA/PNG payloads, not JPEG; the JPEG cache remains the single source for the blocks sink.
-- **Output:** real images (Kitty placements by cell coordinates) or pixelated blocks, per mode selection.
+- **Input:** `[ui] image_mode` TOML key — `"auto" | "kitty" | "blocks"`, default `"auto"`; thumbnail source files from the existing on-disk cache. The kitty sink transmits a PNG derived next to each cached JPEG (`<cache>.jpg.png` via `GetThumbnailPNG`) — the Kitty protocol accepts only RGB/RGBA/PNG payloads, not JPEG; the JPEG cache remains the single source for the blocks sink.
+- **Output:** real images (Kitty placements by cell coordinates) or pixelated blocks, per mode selection. Kitty placements display an aspect-correct center crop of the source image (source pixel rect `x/y/w/h` scaled into the target cells, using the terminal's cell pixel geometry) and are clamped to the inner rect of their owning panel — a partially visible row shows the corresponding partial image, never bleeding into neighboring panels.
 - **Compatibility:** existing configs without `image_mode` behave as `auto`; non-Kitty terminals are unaffected.
 
 ## Errors and limits

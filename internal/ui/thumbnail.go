@@ -171,48 +171,71 @@ func (tc *ThumbnailCache) GetThumbnailPathWithContext(ctx context.Context, url s
 	return cachePath, nil
 }
 
-// GetThumbnailPNGPath returns a PNG sibling (`<cache>.png`) of the cached
-// JPEG, deriving it when missing or older than the JPEG. The Kitty sink
-// transmits this file: the graphics protocol accepts only RGB/RGBA/PNG
-// payloads, so a JPEG transmission is silently rejected by the terminal.
-// The JPEG cache stays the single source for the blocks sink.
-func (tc *ThumbnailCache) GetThumbnailPNGPath(url string) (string, error) {
+// GetThumbnailPNG returns a PNG sibling (`<cache>.png`) of the cached JPEG —
+// deriving it when missing or older than the JPEG — plus its pixel
+// dimensions. The Kitty sink transmits this file: the graphics protocol
+// accepts only RGB/RGBA/PNG payloads, so a JPEG transmission is silently
+// rejected by the terminal. The dimensions feed the aspect-correct source
+// crop of the kitty placement. The JPEG cache stays the single source for
+// the blocks sink.
+func (tc *ThumbnailCache) GetThumbnailPNG(url string) (string, int, int, error) {
 	jpegPath, err := tc.GetThumbnailPath(url)
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 	pngPath := jpegPath + ".png"
 
 	jpegInfo, err := os.Stat(jpegPath)
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 	if pngInfo, err := os.Stat(pngPath); err == nil && !pngInfo.ModTime().Before(jpegInfo.ModTime()) {
-		return pngPath, nil
+		w, h, err := pngDimensions(pngPath)
+		if err != nil {
+			return "", 0, 0, err
+		}
+		return pngPath, w, h, nil
 	}
 
 	src, err := os.Open(jpegPath)
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 	img, err := jpeg.Decode(src)
 	_ = src.Close()
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 
 	out, err := os.Create(pngPath)
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 	defer func() {
 		_ = out.Close()
 	}()
 	if err := png.Encode(out, img); err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
 
-	return pngPath, nil
+	return pngPath, img.Bounds().Dx(), img.Bounds().Dy(), nil
+}
+
+// pngDimensions reads the pixel size of a cached PNG without decoding the
+// pixels (DecodeConfig stops after the header).
+func pngDimensions(path string) (int, int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 0, 0, err
+	}
+	return cfg.Width, cfg.Height, nil
 }
 
 // fetchListThumbnail delivers a list item thumbnail through the active sink:
@@ -226,12 +249,12 @@ func (a *SimpleApp) fetchListThumbnail(list *CustomList, index int, url string) 
 
 	go func() {
 		if a.kitty != nil {
-			path, err := a.thumbCache.GetThumbnailPNGPath(url)
+			path, w, h, err := a.thumbCache.GetThumbnailPNG(url)
 			if err != nil {
 				return
 			}
 			a.app.QueueUpdateDraw(func() {
-				list.SetKittyThumbnail(index, url, path)
+				list.SetKittyThumbnail(index, url, path, w, h)
 			})
 			return
 		}
