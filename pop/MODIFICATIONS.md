@@ -7,5 +7,6 @@ Profile: [[pop/PROJECT|youtui-player]] · Roadmap: [[pop/ROADMAP|Roadmap]]
 | # | Modification | Description (≤1 line) | Status |
 |---|--------------|-----------------------|--------|
 | M-1 | Kitty thumbnails — `M-1.1-kitty-thumbnails` | Render thumbnails as real images via the Kitty graphics protocol, pixelated blocks as fallback. · size: M | 001_initial_task |
+| M-2 | Kitty scroll/delete staleness — [[M-2.1-kitty-scroll-stale]] | Kitty placements go stale on upward scroll and item deletion; content-keyed sinks + fresh re-place + debug instrumentation. · size: S · yolo: yes | 001_initial_task |
 
 **Modification status:** open | in progress | completed
