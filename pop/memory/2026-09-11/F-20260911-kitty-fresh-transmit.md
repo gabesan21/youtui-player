@@ -10,9 +10,9 @@ authorization: F-20260911-kitty-fresh-transmit: direct-fix triage (rule 13)
 
 # F-20260911-kitty-fresh-transmit — Kitty image ids are single-use (fresh transmit per place, d=I delete)
 
-- **Delivery:** every Kitty placement emits a fresh `a=t` transmit (new image id) plus a fresh placement id; deletes use `d=I` (placement AND image data); the `transmitted` dedup map is gone.
-- **Verification:** `make build`/`make fmt`/`make vet` green; no tests per workflow; empirical Kitty validation stays with the human (debug log `YOUTUI_KITTY_DEBUG`).
-- **Contract impact:** specs: [[pop/specs/ui-thumbnails|ui-thumbnails]] invariant replaced (single-use image ids, d=I) · DOX: `internal/ui/AGENTS.md` kitty rule updated.
+- **Delivery:** every Kitty placement emits a fresh `a=t` transmit (new image id) and placement id; deletes use `d=I` (placement + data); the `transmitted` dedup map is gone.
+- **Verification:** `make build`/`fmt`/`vet` green; no tests per workflow; Kitty validation stays with the human (`YOUTUI_KITTY_DEBUG`).
+- **Contract impact:** specs: [[pop/specs/ui-thumbnails|ui-thumbnails]] invariant replaced · DOX: `internal/ui/AGENTS.md` kitty rule updated.
 
 ## Entries
 
