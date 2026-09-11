@@ -16,8 +16,9 @@ import (
 // transmit image files from the on-disk cache without displaying them
 // (a=t, t=f — always the derived PNG, never the JPEG), place a source pixel
 // crop by cell size at the cursor position (a=p with x/y/w/h + c/r), and
-// delete by placement id (a=d, d=p). No Unicode placeholders, so there is no
-// tmux passthrough.
+// delete by image id (a=d, d=I — placements plus image data; each image id
+// has exactly one placement by design, so this is exact). No Unicode
+// placeholders, so there is no tmux passthrough.
 //
 // All KittyRenderer methods and emitters MUST be called from the tview main
 // loop (SetAfterDrawFunc / SetBeforeDrawFunc / QueueUpdateDraw callbacks) or
@@ -191,7 +192,6 @@ type kittySink struct {
 // against the desired per-frame state. Main-loop only: no locking, by design.
 type KittyRenderer struct {
 	sinks       map[string]*kittySink
-	transmitted map[string]uint32 // cache file path -> transmitted image id
 	generations map[string]uint64 // list prefix -> last seen render generation
 	cell        kittyCellSize
 	nextImageID uint32
@@ -207,7 +207,6 @@ type KittyRenderer struct {
 func NewKittyRenderer() *KittyRenderer {
 	r := &KittyRenderer{
 		sinks:       make(map[string]*kittySink),
-		transmitted: make(map[string]uint32),
 		generations: make(map[string]uint64),
 		debugPath:   os.Getenv("YOUTUI_KITTY_DEBUG"),
 	}
@@ -286,30 +285,30 @@ func kittySinkPrefix(key string) string {
 
 // placeSink converges one sink to the desired spec, emitting nothing only
 // when the live placement already matches it and no re-place is forced. Any
-// other case deletes the old placement first and places with a fresh
-// placement id — plus a fresh transmit (new image id) when the image path
-// changed — so the terminal can never keep a stale frame paired with the
-// current spec.
+// other case deletes the old image first (d=I frees placement AND data) and
+// places with a FRESH transmit (new image id) plus a fresh placement id —
+// never reusing an image id. Reuse is unsafe twice over: the spec leaves
+// overlapping placements of the same image id at the same z-index undefined
+// (a lost/raced delete then keeps the stale frame visible), and real
+// terminals may free image data when a placement is deleted, so re-placing
+// an old id fails silently (q=2 hides the error).
 func (r *KittyRenderer) placeSink(key string, sink *kittySink, spec kittySinkSpec, force bool, w io.Writer) {
 	if !force && sink.placed && sink.spec == spec {
 		return
 	}
-	pathChanged := !sink.placed || sink.spec.path != spec.path
 	if sink.placed {
 		r.debugf("delete key=%s i=%d p=%d (replace)\n", key, sink.imageID, sink.placementID)
 		r.deleteSink(sink, w)
 	}
-	if pathChanged {
-		sink.imageID = r.transmit(w, spec.path)
-	}
+	sink.imageID = r.transmit(w, spec.path)
 	sink.spec = spec
 	sink.placementID = r.nextPlacementID()
 	sink.placed = true
-	r.debugf("place key=%s i=%d p=%d rect=%d,%d %dx%d src=%d,%d %dx%d force=%v fresh-image=%v\n",
+	r.debugf("place key=%s i=%d p=%d rect=%d,%d %dx%d src=%d,%d %dx%d force=%v\n",
 		key, sink.imageID, sink.placementID,
 		spec.rect.x, spec.rect.y, spec.rect.w, spec.rect.h,
 		spec.src.x, spec.src.y, spec.src.w, spec.src.h,
-		force, pathChanged)
+		force)
 	kittyPlace(w, sink.imageID, sink.placementID, spec)
 }
 
@@ -355,11 +354,11 @@ func sortedKeys[V any](m map[string]V) []string {
 	return keys
 }
 
-// Invalidate deletes every placement and forgets the transmitted registry, so
-// the next Sync re-transmits and re-places from scratch. Used on resize and
-// whenever the thumbnail areas leave the visible layout (modals). The registry
-// reset is deliberate hardening: real terminals may free image data when
-// placements are deleted, so re-placing without re-transmitting is unsafe.
+// Invalidate deletes every placement so the next Sync re-transmits and
+// re-places from scratch. Used on resize and whenever the thumbnail areas
+// leave the visible layout (modals). Re-transmission is not optional:
+// deleting placements may free the image data in real terminals, and every
+// place is a fresh transmit by policy (see placeSink).
 func (r *KittyRenderer) Invalidate(w io.Writer) {
 	if !r.anyPlaced {
 		return
@@ -368,7 +367,6 @@ func (r *KittyRenderer) Invalidate(w io.Writer) {
 	for _, sink := range r.sinks {
 		sink.placed = false
 	}
-	r.transmitted = make(map[string]uint32)
 	r.anyPlaced = false
 }
 
@@ -377,7 +375,6 @@ func (r *KittyRenderer) Invalidate(w io.Writer) {
 func (r *KittyRenderer) DeleteAll(w io.Writer) {
 	kittyDeleteEverything(w)
 	r.sinks = make(map[string]*kittySink)
-	r.transmitted = make(map[string]uint32)
 	r.anyPlaced = false
 }
 
@@ -385,16 +382,15 @@ func (r *KittyRenderer) deleteSink(sink *kittySink, w io.Writer) {
 	if !sink.placed {
 		return
 	}
-	kittyDeletePlacement(w, sink.imageID, sink.placementID)
+	kittyDeletePlacement(w, sink.imageID)
 	sink.placed = false
 }
 
+// transmit always allocates a new image id and emits the a=t transmit: image
+// ids are single-use (one placement each), so there is no dedup cache —
+// re-transmitting a path is a tiny escape and kitty reads the file itself.
 func (r *KittyRenderer) transmit(w io.Writer, path string) uint32 {
-	if id, ok := r.transmitted[path]; ok {
-		return id
-	}
 	r.nextImageID++
-	r.transmitted[path] = r.nextImageID
 	kittyTransmitFile(w, r.nextImageID, path)
 	return r.nextImageID
 }
@@ -427,8 +423,13 @@ func kittyPlace(w io.Writer, imageID, placementID uint32, spec kittySinkSpec) {
 		spec.rect.w, spec.rect.h, kittyZIndexBelowText, kittyAPCEnd)
 }
 
-func kittyDeletePlacement(w io.Writer, imageID, placementID uint32) {
-	fmt.Fprintf(w, "%sa=d,d=p,i=%d,p=%d,q=2;%s", kittyAPCStart, imageID, placementID, kittyAPCEnd)
+// kittyDeletePlacement deletes by image id (d=I): the placement AND the
+// image data. Image ids are single-use in this renderer (fresh transmit per
+// place), so each id has exactly one placement and d=I is exact — it also
+// guarantees the next transmit of the same content starts from a clean
+// terminal-side state.
+func kittyDeletePlacement(w io.Writer, imageID uint32) {
+	fmt.Fprintf(w, "%sa=d,d=I,i=%d,q=2;%s", kittyAPCStart, imageID, kittyAPCEnd)
 }
 
 // Lowercase d=a deletes placements but keeps image data; uppercase d=A frees

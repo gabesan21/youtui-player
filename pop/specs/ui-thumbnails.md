@@ -31,7 +31,7 @@ How the TUI renders track thumbnails given terminal capability and user preferen
 - No Kitty escape sequences are emitted when the blocks mode is selected.
 - Kitty image placements are terminal state owned by the app: every placement has a matching delete on any layout-affecting event and on exit.
 - Kitty placements are keyed by **content** (`prefix:videoID` parsed from the `i.ytimg.com/vi/<id>/` thumbnail URL, fallback the track URL), never by list index — an index shift (scroll, delete, move, page change) cannot mis-pair a placement with another track.
-- A changed placement spec always deletes the old placement and re-places with a **fresh placement id** (fresh transmit when the image path changes); a re-rendered visible window (list generation bump) forces a re-place at the next sync even when a spec coincidentally compares equal.
+- Kitty image ids are **single-use**: every placement emits a fresh transmit (new image id) plus a fresh placement id, and a delete uses `d=I` (frees the placement AND the image data) — reusing an image id is undefined when same-z placements overlap and fails silently when a delete has freed the data. A re-rendered visible window (list generation bump) forces a re-place at the next sync even when a spec coincidentally compares equal.
 - No new third-party dependencies for image rendering, beyond `golang.org/x/sys` (already an indirect tcell dependency, promoted to direct for the `TIOCGWINSZ` cell-geometry query).
 
 ## Interfaces
