@@ -22,7 +22,8 @@ type ThemeConfig struct {
 }
 
 type UIConfig struct {
-	Language string `toml:"language, omitempty"`
+	Language  string `toml:"language, omitempty"`
+	ImageMode string `toml:"image_mode,omitempty"`
 }
 
 type PlaybackConfig struct {
@@ -58,7 +59,8 @@ func LoadConfig() (*Config, error) {
 			Active: "catppuccin-mocha",
 		},
 		UI: UIConfig{
-			Language: detectDefaultLanguage(),
+			Language:  detectDefaultLanguage(),
+			ImageMode: "auto",
 		},
 		Playback: PlaybackConfig{
 			DefaultMode:  "audio",
@@ -81,6 +83,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg.UI.Language = normalizeLang(cfg.UI.Language)
+	cfg.UI.ImageMode = NormalizeImageMode(cfg.UI.ImageMode)
 
 	return cfg, nil
 }
@@ -128,6 +131,20 @@ func detectDefaultLanguage() string {
 		}
 	}
 	return "pt"
+}
+
+// NormalizeImageMode maps empty or unknown `image_mode` values to "auto", so
+// existing configs and typos keep the safe default. Exported because the UI
+// selects the thumbnail sink from the normalized value.
+func NormalizeImageMode(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "kitty":
+		return "kitty"
+	case "blocks":
+		return "blocks"
+	default:
+		return "auto"
+	}
 }
 
 func normalizeLang(s string) string {
