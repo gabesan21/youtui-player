@@ -233,6 +233,17 @@ func (r *KittyRenderer) RefreshCellSize() {
 func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, generations map[string]uint64, w io.Writer) {
 	r.beginDebug(desired)
 
+	// Resolve generation bumps once per list prefix, BEFORE the sink loops:
+	// the recorded generation updates exactly once per Sync per prefix, and
+	// the resulting flag reaches every sink of that list — computing it per
+	// sink would let the first sink of a prefix consume the bump and skip
+	// the forced re-place of all its siblings.
+	force := make(map[string]bool, len(generations))
+	for prefix, gen := range generations {
+		force[prefix] = gen != r.generations[prefix]
+		r.generations[prefix] = gen
+	}
+
 	for key, sink := range r.sinks {
 		spec, wanted := desired[key]
 		if !wanted {
@@ -241,7 +252,7 @@ func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, generations map[s
 			delete(r.sinks, key)
 			continue
 		}
-		r.placeSink(key, sink, spec, r.generationBumped(key, generations), w)
+		r.placeSink(key, sink, spec, force[kittySinkPrefix(key)], w)
 	}
 	for key, spec := range desired {
 		if _, ok := r.sinks[key]; ok {
@@ -249,8 +260,7 @@ func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, generations map[s
 		}
 		sink := &kittySink{}
 		r.sinks[key] = sink
-		r.generationBumped(key, generations)
-		r.placeSink(key, sink, spec, false, w)
+		r.placeSink(key, sink, spec, force[kittySinkPrefix(key)], w)
 	}
 
 	r.anyPlaced = false
@@ -264,19 +274,14 @@ func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, generations map[s
 	r.flushDebug()
 }
 
-// generationBumped records the list's current render generation and reports
-// whether it changed since the last Sync. The prefix of a sink key ("search",
-// "playlist") selects the list; the "player" key has no generation entry and
-// never forces.
-func (r *KittyRenderer) generationBumped(key string, generations map[string]uint64) bool {
-	prefix := key
+// kittySinkPrefix selects the list a sink key belongs to ("search",
+// "playlist"); the "player" key has no prefix separator and no generation
+// entry, so it never forces.
+func kittySinkPrefix(key string) string {
 	if i := strings.IndexByte(key, ':'); i >= 0 {
-		prefix = key[:i]
+		return key[:i]
 	}
-	gen := generations[prefix]
-	bumped := gen != r.generations[prefix]
-	r.generations[prefix] = gen
-	return bumped
+	return key
 }
 
 // placeSink converges one sink to the desired spec, emitting nothing only
