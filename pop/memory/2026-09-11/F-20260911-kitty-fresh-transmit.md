@@ -8,7 +8,7 @@ pr:
 authorization: F-20260911-kitty-fresh-transmit: direct-fix triage (rule 13)
 ---
 
-# F-20260911-kitty-fresh-transmit — Kitty image ids are single-use (fresh transmit per place, d=I delete)
+# F-20260911-kitty-fresh-transmit — single-use Kitty image ids
 
 - **Delivery:** every Kitty placement emits a fresh `a=t` transmit (new image id) and placement id; deletes use `d=I` (placement + data); the `transmitted` dedup map is gone.
 - **Verification:** `make build`/`fmt`/`vet` green; no tests per workflow; Kitty validation stays with the human (`YOUTUI_KITTY_DEBUG`).
