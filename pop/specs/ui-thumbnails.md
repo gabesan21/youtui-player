@@ -3,8 +3,8 @@ id: ui-thumbnails
 project: youtui-player
 domain: ui
 kind: contract
-status: draft
-implementation: planned
+status: active
+implementation: implemented
 origin: "M-1.1-kitty-thumbnails"
 created: 2026-09-10
 updated: 2026-09-10
