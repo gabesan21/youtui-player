@@ -21,5 +21,5 @@ authorization: F-20260911-kitty-fresh-transmit: direct-fix triage (rule 13)
 
 ## Links
 
-- **Origin:** user's real-Kitty debug log after M-2.1 — perfect delete+place sequence, screen still stale — *follow for why this fix exists*.
+- **Origin:** user's real-Kitty debug log after M-2.1 (perfect emissions, screen still stale) — *follow for why this fix exists*.
 - **Commit:** c27c207 — *follow to inspect the final diff*.
