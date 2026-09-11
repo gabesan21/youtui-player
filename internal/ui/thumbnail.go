@@ -120,6 +120,12 @@ func (tc *ThumbnailCache) GetThumbnailImageWithContext(ctx context.Context, url 
 	return img, nil
 }
 
+// thumbnailMaxEdge caps the cached image edge. The old 100px cap was enough
+// for the pixelated blocks sink but too coarse for Kitty image rendering;
+// 640 keeps kitty sharp (it scales to the placement cells itself) while
+// bounding disk use, and the blocks sink reads the same files unchanged.
+const thumbnailMaxEdge = 640
+
 func (tc *ThumbnailCache) saveImageToCache(img image.Image, cachePath string) error {
 	f, err := os.Create(cachePath)
 	if err != nil {
@@ -130,7 +136,67 @@ func (tc *ThumbnailCache) saveImageToCache(img image.Image, cachePath string) er
 		_ = f.Close()
 	}()
 
-	resized := resize.Thumbnail(100, 100, img, resize.Lanczos3)
+	resized := resize.Thumbnail(thumbnailMaxEdge, thumbnailMaxEdge, img, resize.Lanczos3)
 
 	return jpeg.Encode(f, resized, &jpeg.Options{Quality: 90})
+}
+
+// GetThumbnailPath returns the on-disk cache file for a thumbnail, downloading
+// and caching it first when needed. The Kitty sink transmits from this path.
+func (tc *ThumbnailCache) GetThumbnailPath(url string) (string, error) {
+	return tc.GetThumbnailPathWithContext(context.Background(), url)
+}
+
+func (tc *ThumbnailCache) GetThumbnailPathWithContext(ctx context.Context, url string) (string, error) {
+	if url == "" {
+		return "", fmt.Errorf("empty URL")
+	}
+
+	cachePath := tc.getCachePath(url)
+
+	if _, err := os.Stat(cachePath); err == nil {
+		return cachePath, nil
+	}
+
+	img, err := tc.downloadImageWithContext(ctx, url)
+	if err != nil {
+		return "", err
+	}
+
+	if err := tc.saveImageToCache(img, cachePath); err != nil {
+		return "", err
+	}
+
+	return cachePath, nil
+}
+
+// fetchListThumbnail delivers a list item thumbnail through the active sink:
+// the Kitty image path when kitty mode is on, the pixelated blocks image
+// otherwise. Delivery is guarded by the item's current thumbnail URL so a
+// fetch from a stale page/scroll position never paints over the new content.
+func (a *SimpleApp) fetchListThumbnail(list *CustomList, index int, url string) {
+	if a.thumbCache == nil {
+		return
+	}
+
+	go func() {
+		if a.kitty != nil {
+			path, err := a.thumbCache.GetThumbnailPath(url)
+			if err != nil {
+				return
+			}
+			a.app.QueueUpdateDraw(func() {
+				list.SetKittyThumbnail(index, url, path)
+			})
+			return
+		}
+
+		img, err := a.thumbCache.GetThumbnailImage(url)
+		if err != nil || img == nil {
+			return
+		}
+		a.app.QueueUpdateDraw(func() {
+			list.SetThumbnail(index, url, img)
+		})
+	}()
 }

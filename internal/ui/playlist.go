@@ -24,15 +24,8 @@ func (a *SimpleApp) addToPlaylist(track Track) {
 	a.app.QueueUpdateDraw(func() {
 		a.playlist.AddItem(track, index)
 
-		if track.Thumbnail != "" && a.thumbCache != nil {
-			go func(idx int, url string) {
-				img, err := a.thumbCache.GetThumbnailImage(url)
-				if err == nil && img != nil {
-					a.app.QueueUpdateDraw(func() {
-						a.playlist.SetThumbnail(idx, img)
-					})
-				}
-			}(index, track.Thumbnail)
+		if track.Thumbnail != "" {
+			a.fetchListThumbnail(a.playlist, index, track.Thumbnail)
 		}
 
 		a.AutoSaveState()
@@ -67,15 +60,8 @@ func (a *SimpleApp) removeFromPlaylist(idx int) {
 		for i, t := range tracks {
 			a.playlist.AddItem(t, i)
 
-			if t.Thumbnail != "" && a.thumbCache != nil {
-				go func(idx int, url string) {
-					img, err := a.thumbCache.GetThumbnailImage(url)
-					if err == nil && img != nil {
-						a.app.QueueUpdateDraw(func() {
-							a.playlist.SetThumbnail(idx, img)
-						})
-					}
-				}(i, t.Thumbnail)
+			if t.Thumbnail != "" {
+				a.fetchListThumbnail(a.playlist, i, t.Thumbnail)
 			}
 		}
 		a.playlist.SetTitle(fmt.Sprintf(" Playlist [%d] ", count))
@@ -124,15 +110,8 @@ func (a *SimpleApp) movePlaylistItem(from, to int) {
 		for i, t := range tracks {
 			a.playlist.AddItem(t, i)
 
-			if t.Thumbnail != "" && a.thumbCache != nil {
-				go func(idx int, url string) {
-					img, err := a.thumbCache.GetThumbnailImage(url)
-					if err == nil && img != nil {
-						a.app.QueueUpdateDraw(func() {
-							a.playlist.SetThumbnail(idx, img)
-						})
-					}
-				}(i, t.Thumbnail)
+			if t.Thumbnail != "" {
+				a.fetchListThumbnail(a.playlist, i, t.Thumbnail)
 			}
 		}
 		a.playlist.SetCurrentIndex(newPos)

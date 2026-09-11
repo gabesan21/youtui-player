@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/gabesan21/youtui-player/internal/config"
@@ -38,7 +39,7 @@ func (a *SimpleApp) setupSearchComponents() {
 
 	a.searchInput.SetDoneFunc(a.onSearchDone)
 
-	a.searchResults = NewCustomList(a.theme)
+	a.searchResults = NewCustomList(a.theme, a.kitty != nil)
 	a.searchResults.SetTitle(" " + a.strings.Results + " [0] ")
 	a.searchResults.SetSelectedFunc(func(idx int) {
 		a.onResultSelectedCustom()
@@ -46,7 +47,7 @@ func (a *SimpleApp) setupSearchComponents() {
 }
 
 func (a *SimpleApp) setupPlaylistComponent() {
-	a.playlist = NewCustomList(a.theme)
+	a.playlist = NewCustomList(a.theme, a.kitty != nil)
 	a.playlist.SetTitle(fmt.Sprintf(" %s [0] ", a.strings.Playlist))
 	a.playlist.SetSelectedFunc(func(idx int) {
 		a.onPlaylistSelectedCustom()
@@ -100,9 +101,17 @@ func (a *SimpleApp) setupPlayerComponents() {
 
 	a.playerInfo.SetBorder(false)
 
-	playerContent := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(a.thumbnailView, 20, 0, false).
-		AddItem(a.playerInfo, 0, 1, false)
+	playerContent := tview.NewFlex().SetDirection(tview.FlexColumn)
+	if a.kitty != nil {
+		// Kitty sink: a blank placeholder owns the cells (tcell keeps
+		// painting the theme background) while the image is placed by cell
+		// coordinates from syncKittyPlacements.
+		a.playerKittyBox = tview.NewBox().SetBackgroundColor(a.theme.Base)
+		playerContent.AddItem(a.playerKittyBox, 20, 0, false)
+	} else {
+		playerContent.AddItem(a.thumbnailView, 20, 0, false)
+	}
+	playerContent.AddItem(a.playerInfo, 0, 1, false)
 
 	a.playerBox = tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(playerContent, 0, 1, false)
@@ -397,11 +406,22 @@ func (a *SimpleApp) getMainLayout() tview.Primitive {
 }
 
 func (a *SimpleApp) setupResizeHandler() {
+	// Kitty placements are reconciled after every draw, once widget rects
+	// are final and before tcell flushes the frame.
+	a.app.SetAfterDrawFunc(func(screen tcell.Screen) {
+		a.syncKittyPlacements()
+	})
+
 	var lastW, lastH int
 	a.app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
 		w, h := screen.Size()
 		if w != lastW || h != lastH {
 			lastW, lastH = w, h
+			if a.kitty != nil {
+				// Reflow moves placements out from under their cells; drop
+				// them all and let the next sync re-place at fresh rects.
+				a.kitty.Invalidate(os.Stdout)
+			}
 			a.searchResults.MarkDirty()
 			a.playlist.MarkDirty()
 			go a.app.Draw()
