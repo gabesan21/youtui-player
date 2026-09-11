@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"fmt"
 	"image"
+	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -35,6 +35,9 @@ type CustomList struct {
 	visibleHeight int
 	lastHeight    int
 	dirty         bool
+	// renderGen bumps on every renderVisibleItems; the Kitty sync treats a
+	// bump as "rects may have moved" and re-places this list's sinks.
+	renderGen uint64
 }
 
 func NewCustomList(theme *Theme, kittyMode bool) *CustomList {
@@ -156,11 +159,15 @@ func (c *CustomList) SetKittyThumbnail(index int, url string, path string, srcW,
 }
 
 // kittySinkSpecs returns the desired Kitty placements for the items in the
-// visible window, keyed by prefix+index. Only the visible window contributes:
-// items scrolled out of view keep stale rects and must not be re-placed.
-// Every target rect is clamped to the container's inner rect — kitty
-// placements ignore tview's cell clipping, so rows partially visible at the
-// panel edge would otherwise paint over neighboring panels.
+// visible window. Keys are content-keyed — prefix:videoID parsed from the
+// thumbnail URL (i.ytimg.com/vi/<id>/...), falling back to the track URL —
+// never prefix:index: an index shift (delete, move, page change) must not
+// mis-pair a live placement with the item now occupying that index. Only the
+// visible window contributes: items scrolled out of view keep stale rects
+// and must not be re-placed. Every target rect is clamped to the container's
+// inner rect — kitty placements ignore tview's cell clipping, so rows
+// partially visible at the panel edge would otherwise paint over neighboring
+// panels.
 func (c *CustomList) kittySinkSpecs(prefix string, cell kittyCellSize) map[string]kittySinkSpec {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -182,9 +189,34 @@ func (c *CustomList) kittySinkSpecs(prefix string, cell kittyCellSize) map[strin
 		if !ok {
 			continue
 		}
-		specs[fmt.Sprintf("%s:%d", prefix, i)] = spec
+		specs[prefix+":"+kittyContentKey(item.track)] = spec
 	}
 	return specs
+}
+
+// kittyContentKey derives a sink identity from the track content: the video
+// id inside the thumbnail URL (i.ytimg.com/vi/<id>/...). It falls back to the
+// track URL for thumbnails of another shape — uniqueness, not the id itself,
+// is what the sink key needs.
+func kittyContentKey(track Track) string {
+	const marker = "/vi/"
+	if i := strings.Index(track.Thumbnail, marker); i >= 0 {
+		rest := track.Thumbnail[i+len(marker):]
+		if j := strings.IndexByte(rest, '/'); j > 0 {
+			return rest[:j]
+		}
+	}
+	return track.URL
+}
+
+// KittyRenderGeneration exposes the visible-window generation: it bumps on
+// every renderVisibleItems, and the Kitty sync forces a re-place of this
+// list's sinks when it changes, so scrolling in any direction re-emits
+// placements at current rects even when a spec coincidentally compares equal.
+func (c *CustomList) KittyRenderGeneration() uint64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.renderGen
 }
 
 func (c *CustomList) Clear() {
@@ -198,6 +230,7 @@ func (c *CustomList) Clear() {
 
 func (c *CustomList) renderVisibleItems() {
 	c.container.Clear()
+	c.renderGen++
 
 	_, _, _, wrapperHeight := c.GetInnerRect()
 

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
+	"strings"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -83,7 +86,11 @@ func (a *SimpleApp) syncKittyPlacements() {
 		desired[key] = spec
 	}
 
-	a.kitty.Sync(desired, os.Stdout)
+	generations := map[string]uint64{
+		"search":   a.searchResults.KittyRenderGeneration(),
+		"playlist": a.playlist.KittyRenderGeneration(),
+	}
+	a.kitty.Sync(desired, generations, os.Stdout)
 }
 
 type kittyRect struct {
@@ -185,16 +192,24 @@ type kittySink struct {
 type KittyRenderer struct {
 	sinks       map[string]*kittySink
 	transmitted map[string]uint32 // cache file path -> transmitted image id
+	generations map[string]uint64 // list prefix -> last seen render generation
 	cell        kittyCellSize
 	nextImageID uint32
 	nextPlaceID uint32
 	anyPlaced   bool
+	// debugPath comes from YOUTUI_KITTY_DEBUG; debugBuf accumulates one
+	// Sync's decisions and is flushed to that file at the end of the Sync.
+	// Both are nil/empty when the env var is unset — a silent no-op.
+	debugPath string
+	debugBuf  *strings.Builder
 }
 
 func NewKittyRenderer() *KittyRenderer {
 	r := &KittyRenderer{
 		sinks:       make(map[string]*kittySink),
 		transmitted: make(map[string]uint32),
+		generations: make(map[string]uint64),
+		debugPath:   os.Getenv("YOUTUI_KITTY_DEBUG"),
 	}
 	r.RefreshCellSize()
 	return r
@@ -207,19 +222,37 @@ func (r *KittyRenderer) RefreshCellSize() {
 }
 
 // Sync diffs the desired placements against the live ones: gone sinks are
-// deleted, moved sinks are re-placed in place (same ids replace the previous
-// placement), and image changes delete the old placement before placing anew.
-// Unchanged placements are not re-emitted — kitty placements persist across
-// tcell repaints, so re-sending them every frame would only add traffic.
-func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, w io.Writer) {
+// deleted, and every changed sink is deleted-then-re-placed with fresh ids
+// (see placeSink) — there is no in-place re-place with the same ids.
+// A generation bump of a sink's list (the key prefix) forces the re-place
+// even when the spec coincidentally compares equal, because the widget rects
+// behind an equal spec may still have moved (scroll in any direction).
+// Unchanged, unforced placements are not re-emitted — kitty placements
+// persist across tcell repaints, so re-sending them every frame would only
+// add traffic.
+func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, generations map[string]uint64, w io.Writer) {
+	r.beginDebug(desired)
+
+	// Resolve generation bumps once per list prefix, BEFORE the sink loops:
+	// the recorded generation updates exactly once per Sync per prefix, and
+	// the resulting flag reaches every sink of that list — computing it per
+	// sink would let the first sink of a prefix consume the bump and skip
+	// the forced re-place of all its siblings.
+	force := make(map[string]bool, len(generations))
+	for prefix, gen := range generations {
+		force[prefix] = gen != r.generations[prefix]
+		r.generations[prefix] = gen
+	}
+
 	for key, sink := range r.sinks {
 		spec, wanted := desired[key]
 		if !wanted {
+			r.debugf("delete key=%s i=%d p=%d\n", key, sink.imageID, sink.placementID)
 			r.deleteSink(sink, w)
 			delete(r.sinks, key)
 			continue
 		}
-		r.placeSink(sink, spec, w)
+		r.placeSink(key, sink, spec, force[kittySinkPrefix(key)], w)
 	}
 	for key, spec := range desired {
 		if _, ok := r.sinks[key]; ok {
@@ -227,7 +260,7 @@ func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, w io.Writer) {
 		}
 		sink := &kittySink{}
 		r.sinks[key] = sink
-		r.placeSink(sink, spec, w)
+		r.placeSink(key, sink, spec, force[kittySinkPrefix(key)], w)
 	}
 
 	r.anyPlaced = false
@@ -237,24 +270,89 @@ func (r *KittyRenderer) Sync(desired map[string]kittySinkSpec, w io.Writer) {
 			break
 		}
 	}
+
+	r.flushDebug()
 }
 
-// placeSink converges one sink to the desired spec, emitting nothing when the
-// live placement already matches it.
-func (r *KittyRenderer) placeSink(sink *kittySink, spec kittySinkSpec, w io.Writer) {
-	if sink.placed && sink.spec == spec {
+// kittySinkPrefix selects the list a sink key belongs to ("search",
+// "playlist"); the "player" key has no prefix separator and no generation
+// entry, so it never forces.
+func kittySinkPrefix(key string) string {
+	if i := strings.IndexByte(key, ':'); i >= 0 {
+		return key[:i]
+	}
+	return key
+}
+
+// placeSink converges one sink to the desired spec, emitting nothing only
+// when the live placement already matches it and no re-place is forced. Any
+// other case deletes the old placement first and places with a fresh
+// placement id — plus a fresh transmit (new image id) when the image path
+// changed — so the terminal can never keep a stale frame paired with the
+// current spec.
+func (r *KittyRenderer) placeSink(key string, sink *kittySink, spec kittySinkSpec, force bool, w io.Writer) {
+	if !force && sink.placed && sink.spec == spec {
 		return
 	}
-	if sink.placed && sink.spec.path != spec.path {
+	pathChanged := !sink.placed || sink.spec.path != spec.path
+	if sink.placed {
+		r.debugf("delete key=%s i=%d p=%d (replace)\n", key, sink.imageID, sink.placementID)
 		r.deleteSink(sink, w)
 	}
-	sink.spec = spec
-	if !sink.placed {
+	if pathChanged {
 		sink.imageID = r.transmit(w, spec.path)
-		sink.placementID = r.nextPlacementID()
-		sink.placed = true
 	}
+	sink.spec = spec
+	sink.placementID = r.nextPlacementID()
+	sink.placed = true
+	r.debugf("place key=%s i=%d p=%d rect=%d,%d %dx%d src=%d,%d %dx%d force=%v fresh-image=%v\n",
+		key, sink.imageID, sink.placementID,
+		spec.rect.x, spec.rect.y, spec.rect.w, spec.rect.h,
+		spec.src.x, spec.src.y, spec.src.w, spec.src.h,
+		force, pathChanged)
 	kittyPlace(w, sink.imageID, sink.placementID, spec)
+}
+
+// beginDebug starts the per-Sync debug record when YOUTUI_KITTY_DEBUG names
+// a file; flushDebug appends it at the end of the Sync. One open/append/close
+// per Sync keeps it main-loop-cheap, and unset env means literally no I/O.
+func (r *KittyRenderer) beginDebug(desired map[string]kittySinkSpec) {
+	if r.debugPath == "" {
+		return
+	}
+	r.debugBuf = &strings.Builder{}
+	fmt.Fprintf(r.debugBuf, "[%s] desired=%v live=%v\n",
+		time.Now().Format(time.RFC3339Nano),
+		sortedKeys(desired), sortedKeys(r.sinks))
+}
+
+func (r *KittyRenderer) debugf(format string, args ...any) {
+	if r.debugBuf == nil {
+		return
+	}
+	fmt.Fprintf(r.debugBuf, format, args...)
+}
+
+func (r *KittyRenderer) flushDebug() {
+	if r.debugBuf == nil {
+		return
+	}
+	defer func() { r.debugBuf = nil }()
+	f, err := os.OpenFile(r.debugPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	defer func() { _ = f.Close() }()
+	_, _ = io.WriteString(f, r.debugBuf.String())
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
 }
 
 // Invalidate deletes every placement and forgets the transmitted registry, so
