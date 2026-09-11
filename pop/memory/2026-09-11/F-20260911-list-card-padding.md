@@ -3,7 +3,7 @@ task: F-20260911-list-card-padding
 project: youtui-player
 started: 2026-09-11
 finished: 2026-09-11
-commit: PENDING
+commit: 5a2c75e
 pr:
 authorization: F-20260911-list-card-padding: direct-fix triage (rule 13)
 ---
