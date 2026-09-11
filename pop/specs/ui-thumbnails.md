@@ -30,6 +30,8 @@ How the TUI renders track thumbnails given terminal capability and user preferen
 - The blocks rendering path always works and is always the fallback; Kitty support never removes or degrades it.
 - No Kitty escape sequences are emitted when the blocks mode is selected.
 - Kitty image placements are terminal state owned by the app: every placement has a matching delete on any layout-affecting event and on exit.
+- Kitty placements are keyed by **content** (`prefix:videoID` parsed from the `i.ytimg.com/vi/<id>/` thumbnail URL, fallback the track URL), never by list index — an index shift (scroll, delete, move, page change) cannot mis-pair a placement with another track.
+- A changed placement spec always deletes the old placement and re-places with a **fresh placement id** (fresh transmit when the image path changes); a re-rendered visible window (list generation bump) forces a re-place at the next sync even when a spec coincidentally compares equal.
 - No new third-party dependencies for image rendering, beyond `golang.org/x/sys` (already an indirect tcell dependency, promoted to direct for the `TIOCGWINSZ` cell-geometry query).
 
 ## Interfaces
@@ -43,6 +45,7 @@ How the TUI renders track thumbnails given terminal capability and user preferen
 - **Terminal without Kitty support:** blocks fallback, silently.
 - **Inside tmux:** blocks fallback (no escape passthrough in this iteration).
 - **Image transmission/placement failure:** the affected thumbnail degrades to its blank/blocks area without crashing or corrupting the UI.
+- **Field diagnosis:** `YOUTUI_KITTY_DEBUG=<path>` appends a per-sync decision log (timestamp, desired vs live keys, deletes, places with rects); unset means a silent no-op with zero I/O.
 
 ## Conformance criteria
 
